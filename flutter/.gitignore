@@ -32,6 +32,9 @@
 /build/
 
 # Web related
+web/canvaskit
+web/yuv*
+web/ffmpeg*
 
 # Symbolication related
 app.*.symbols
@@ -54,3 +57,6 @@ flutter_export_environment.sh
 Flutter-Generated.xcconfig
 key.jks
 macos/rustdesk.xcodeproj/project.xcworkspace/
+
+# FVM Version Cache
+.fvm/

@@ -306,8 +306,6 @@ class _RemotePageState extends State<RemotePage>
               child: RawKeyFocusScope(
                   focusNode: _rawKeyFocusNode,
                   onFocusChange: (bool imageFocused) {
-                    debugPrint(
-                        "onFocusChange(window active:${!_isWindowBlur}) $imageFocused");
                     // See [onWindowBlur].
                     if (isWindows) {
                       if (_isWindowBlur) {

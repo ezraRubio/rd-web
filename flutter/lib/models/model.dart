@@ -201,7 +201,6 @@ class FfiModel with ChangeNotifier {
     if (parent.target?.connType == ConnType.defaultConn) {
       KeyboardEnabledState.find(id).value = _permissions['keyboard'] != false;
     }
-    debugPrint('updatePermission: $_permissions');
     notifyListeners();
   }
 

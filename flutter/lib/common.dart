@@ -1506,9 +1506,7 @@ late FFI _globalFFI;
 FFI get gFFI => _globalFFI;
 
 Future<void> initGlobalFFI() async {
-  debugPrint("_globalFFI init");
   _globalFFI = FFI(null);
-  debugPrint("_globalFFI init end");
   // after `put`, can also be globally found by Get.find<FFI>();
   Get.put<FFI>(_globalFFI, permanent: true);
 }
@@ -2035,7 +2033,6 @@ Future<bool> initUniLinks() async {
   // check cold boot
   try {
     final initialLink = await getInitialLink();
-    print("initialLink: $initialLink");
     if (initialLink == null || initialLink.isEmpty) {
       return false;
     }
@@ -3108,7 +3105,8 @@ parseParamScreenRect(Map<String, dynamic> params) {
   return screenRect;
 }
 
-get isInputSourceFlutter => stateGlobal.getInputSource() == "Input source 2";
+get currentInputSource => stateGlobal.getInputSource();
+get isInputSourceFlutter => currentInputSource == "Input source 2";
 
 class _ReconnectCountDownButton extends StatefulWidget {
   _ReconnectCountDownButton({

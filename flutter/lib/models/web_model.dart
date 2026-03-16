@@ -50,7 +50,6 @@ class PlatformFFI {
 
   bool registerEventHandler(
       String eventName, String handlerName, HandleEvent handler) {
-    debugPrint('registerEventHandler $eventName $handlerName');
     var handlers = _eventHandlers[eventName];
     if (handlers == null) {
       _eventHandlers[eventName] = {handlerName: handler};
@@ -66,7 +65,6 @@ class PlatformFFI {
   }
 
   void unregisterEventHandler(String eventName, String handlerName) {
-    debugPrint('unregisterEventHandler $eventName $handlerName');
     var handlers = _eventHandlers[eventName];
     if (handlers != null) {
       handlers.remove(handlerName);

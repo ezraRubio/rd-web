@@ -522,6 +522,10 @@ class InputModel {
   }
 
   KeyEventResult handleKeyEvent(KeyEvent e) {
+    final label = physicalKeyMap[e.physicalKey.usbHidUsage & 0xFFFF] ??
+        logicalKeyMap[e.logicalKey.keyId] ??
+        e.logicalKey.keyLabel;
+
     if (isViewOnly) return KeyEventResult.handled;
     if (!isInputSourceFlutter) {
       if (isDesktop) {
@@ -580,7 +584,7 @@ class InputModel {
     if (isMobileAndMapMode || isDesktopAndMapMode) {
       // FIXME: e.character is wrong for dead keys, eg: ^ in de
       newKeyboardMode(
-          e.character ?? '',
+          e.character ?? label,
           e.physicalKey.usbHidUsage & 0xFFFF,
           // Show repeat event be converted to "release+press" events?
           e is KeyDownEvent || e is KeyRepeatEvent);
@@ -986,7 +990,6 @@ class InputModel {
   }
 
   void onPointDownImage(PointerDownEvent e) {
-    debugPrint("onPointDownImage ${e.kind}");
     _stopFling = true;
     if (isDesktop) _queryOtherWindowCoords = true;
     _remoteWindowCoords = [];

@@ -39,7 +39,6 @@ class CustomTouchGestureRecognizer extends ScaleGestureRecognizer {
   Timer? _debounceTimer;
 
   void _init() {
-    debugPrint("CustomTouchGestureRecognizer init");
     // onStart = (d) {};
     onUpdate = (d) {
       _debounceTimer?.cancel();
@@ -476,7 +475,6 @@ class DoubleFinerTapGestureRecognizer extends GestureRecognizer {
 
   @override
   void addAllowedPointer(PointerDownEvent event) {
-    debugPrint("addAllowedPointer");
     if (_isStart) {
       // second
       if (onDoubleFinerTapDown != null) {
@@ -514,7 +512,6 @@ class DoubleFinerTapGestureRecognizer extends GestureRecognizer {
   void _handleEvent(PointerEvent event) {
     final _TapTracker tracker = _trackers[event.pointer]!;
     if (event is PointerUpEvent) {
-      debugPrint("PointerUpEvent");
       _upTap.add(tracker.pointer);
     } else if (event is PointerMoveEvent) {
       if (!tracker.isWithinGlobalTolerance(event, kDoubleTapTouchSlop)) {

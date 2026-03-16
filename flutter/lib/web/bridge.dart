@@ -911,7 +911,9 @@ class RustdeskImpl {
     // export const CONFIG_INPUT_SOURCE_1 = "Input source 1";
     // // flutter grab mode
     // export const CONFIG_INPUT_SOURCE_2 = "Input source 2";
-    return inputSource != '' ? inputSource : 'Input source 1';
+    //! changed to default to flutter grab mode based on the comments above, as I haven't implemented in js
+    //! because at this point, there's no implementation to option:local or input-source in globals.js therefore inputSource is always empty
+    return inputSource != '' ? inputSource : 'Input source 2';
   }
 
   Future<void> mainSetInputSource(
