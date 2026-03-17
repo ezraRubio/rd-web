@@ -96,10 +96,10 @@ class RustdeskImpl {
   }
 
   Stream<EventToUI> sessionStart(
-      {required UuidValue sessionId, required String id, dynamic hint}) {
+      {required UuidValue sessionId, required String id, dynamic hint, String? password}) {
     js.context.callMethod('setByName', [
       'session_start',
-      jsonEncode({'id': id})
+      jsonEncode({'id': id, 'password': password})
     ]);
     return Stream.empty();
   }
@@ -796,7 +796,7 @@ class RustdeskImpl {
   }
 
   String mainGetAppNameSync({dynamic hint}) {
-    return 'RustDesk';
+    return '[HardcodedName] Troldesk';
   }
 
   String mainUriPrefixSync({dynamic hint}) {

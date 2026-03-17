@@ -2665,6 +2665,7 @@ class FFI {
     int? display,
     List<int>? displays,
   }) {
+    debugPrint("[FFI] start: $id, $isFileTransfer, $isPortForward, $isRdp, $switchUuid, $password, $isSharedPassword, $connToken, $forceRelay, $tabWindowId, $display, $displays");
     closed = false;
     auditNote = '';
     if (isMobile) mobileReset();
@@ -2722,7 +2723,7 @@ class FFI {
     // Any operations that depend on the stream should be carefully handled.
     late final Stream<EventToUI> stream;
     if (isNewPeer || display == null || displays == null) {
-      stream = bind.sessionStart(sessionId: sessionId, id: id);
+      stream = bind.sessionStart(sessionId: sessionId, id: id, password: password);
     } else {
       // We have to put displays in `sessionStart()` to make sure the stream is ready
       // and then the displays' capturing requests can be sent.

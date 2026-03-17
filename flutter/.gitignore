@@ -35,6 +35,16 @@
 web/canvaskit
 web/yuv*
 web/ffmpeg*
+web/js/dist
+web/assets
+web/js/src/gen_js_from_hbb.ts
+web/js/src/message.ts
+web/js/src/rendezvous.ts
+web/ogvjs*
+web/libopus.js
+web/libopus.wasm
+web/yuv-canvas*
+web/node_modules
 
 # Symbolication related
 app.*.symbols
