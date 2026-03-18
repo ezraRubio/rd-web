@@ -191,13 +191,11 @@ window.setByName = (name, value) => {
     case 'login':
       value = JSON.parse(value);
       curConn.setRemember(value.remember);
-      curConn.login({
-        os_login: {
-          username: value.os_username,
-          password: value.os_password,
-        },
-        password: value.password,
-      });
+      if (value.os_username) {
+        console.error("os login not implemented, escaping");
+        break;
+      }
+      curConn.login(value.password);
       break;
     case 'close':
       close();

@@ -256,9 +256,6 @@ export default class Connection {
         if (!msg) {
           break;
         }
-        if (msg?.key_event) {
-          console.log("key_event received: ", msg?.key_event);
-        }
         
         messageCount++;
         
@@ -269,6 +266,7 @@ export default class Connection {
         } else {
           if (!this._password)
             this.msgbox("input-password", "Password Required", "");
+            continue
           this.login();
         }
       } else if (msg?.test_delay) {
@@ -626,7 +624,6 @@ export default class Connection {
   }
 
   async inputOsPassword(seq: string) {
-    console.log("am i ever here?", seq);
     this.inputMouse();
     await sleep(50);
     this.inputMouse(0, 3, 3);

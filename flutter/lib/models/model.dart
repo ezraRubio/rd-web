@@ -2665,7 +2665,6 @@ class FFI {
     int? display,
     List<int>? displays,
   }) {
-    debugPrint("[FFI] start: $id, $isFileTransfer, $isPortForward, $isRdp, $switchUuid, $password, $isSharedPassword, $connToken, $forceRelay, $tabWindowId, $display, $displays");
     closed = false;
     auditNote = '';
     if (isMobile) mobileReset();
