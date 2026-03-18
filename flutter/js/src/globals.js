@@ -344,6 +344,8 @@ window.getByName = (name, arg) => {
 
 function _getByName(name, arg) {
   switch (name) {
+    case 'app-name':
+      return localStorage.getItem('app-name') || '';
     case 'remote_id':
       return localStorage.getItem('remote-id');
     case 'remember':
@@ -361,7 +363,7 @@ function _getByName(name, arg) {
       ];
       const obj = {};
       keys.forEach(key => {
-        const v = localStorage.getItem(key);
+        const v = getEffectiveOption(key);
         if (v) obj[key] = v;
       });
       return JSON.stringify(obj);
@@ -411,7 +413,7 @@ function _getByName(name, arg) {
     case 'api_server':
       return getApiServer();
     case 'is_using_public_server':
-      return !localStorage.getItem('custom-rendezvous-server');
+      return !getEffectiveOption('custom-rendezvous-server');
     case 'get_version_number':
       return getVersionNumber(arg);
     case 'audit_server':
@@ -571,6 +573,10 @@ function setUserDefaultOption(value) {
 }
 
 export function getUserDefaultOption(value) {
+  const configValue = getEffectiveOption(value)
+  if (configValue) {
+    return configValue
+  }
   const defaultOptions = {
     'view_style': 'original',
     'scroll_style': 'scrollauto',
@@ -746,12 +752,12 @@ function getAlternativeCodecs() {
 
 // ========================== server begin ==========================
 function getApiServer() {
-  const api_server = localStorage.getItem('api-server');
+  const api_server = getEffectiveOption('api-server');
   if (api_server) {
     return api_server;
   }
 
-  const custom_rendezvous_server = localStorage.getItem('custom-rendezvous-server');
+  const custom_rendezvous_server = getEffectiveOption('custom-rendezvous-server');
   if (custom_rendezvous_server) {
     let s = increasePort(custom_rendezvous_server, -2);
     if (s == custom_rendezvous_server) {
@@ -764,7 +770,7 @@ function getApiServer() {
 }
 
 function getAuditServer(typ) {
-  if (!localStorage.getItem("access_token")) {
+  if (!getEffectiveOption("access_token")) {
     return '';
   }
   const api_server = getApiServer();

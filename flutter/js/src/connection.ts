@@ -5,11 +5,12 @@ import { loadVp9 } from "./codec";
 import * as sha256 from "fast-sha256";
 import * as globals from "./globals";
 import { decompress, mapKey, sleep } from "./common";
+import { getEffectiveOption } from "./config"
 
 const HOSTS = [
   "fortdesk.lan",
 ];
-let HOST = localStorage.getItem("rendezvous-server") || HOSTS[0];
+let HOST = getEffectiveOption("rendezvous-server") || HOSTS[0];
 
 type MsgboxCallback = (type: string, title: string, text: string) => void;
 type DrawCallback = (displayId: number, data: Uint8Array) => void;
@@ -98,10 +99,10 @@ export default class Connection {
     const nat_type = rendezvous.NatType.SYMMETRIC;
     const punch_hole_request = rendezvous.PunchHoleRequest.fromPartial({
       id,
-      licence_key: localStorage.getItem("key") || undefined,
+      licence_key: getEffectiveOption("key") || undefined,
       conn_type,
       nat_type,
-      token: localStorage.getItem("access_token") || undefined,
+      token: getEffectiveOption("access_token") || undefined,
     });
     ws.sendRendezvous({ punch_hole_request });
     const msg = (await ws.next()) as rendezvous.RendezvousMessage;
@@ -149,7 +150,7 @@ export default class Connection {
     const pk = rr.pk;
     let uri = rr.relay_server;
     
-    const customHost = localStorage.getItem("custom-rendezvous-server");
+    const customHost = getEffectiveOption("custom-rendezvous-server");
     if (customHost) {
       uri = getDefaultUri(true);
     } else if (uri) {
@@ -163,7 +164,7 @@ export default class Connection {
     await ws.open();
     this._ws = ws;
     const request_relay = rendezvous.RequestRelay.fromPartial({
-      licence_key: localStorage.getItem("key") || undefined,
+      licence_key: getEffectiveOption("key") || undefined,
       uuid,
     });
     ws.sendRendezvous({ request_relay });
@@ -176,7 +177,7 @@ export default class Connection {
     if (pk) {
       const RS_PK = "1+osBpZv1anmzl0VBLmVJXYvwDp3TN3nX+DS9YOcuXc=";
       try {
-        pk = await globals.verify(pk, localStorage.getItem("key") || RS_PK);
+        pk = await globals.verify(pk, getEffectiveOption("key") || RS_PK);
         if (pk) {
           const idpk = message.IdPk.decode(pk);
           if (idpk.id == this._id) {
@@ -785,7 +786,7 @@ let _connStatus = 0;
 let _videoConnCount = 0;
 
 function testDelay() {
-  if (localStorage.getItem("custom-rendezvous-server")) {
+  if (getEffectiveOption("custom-rendezvous-server")) {
     console.log("Custom rendezvous server configured, skipping public server latency test");
     return;
   }
@@ -802,7 +803,7 @@ function testDelay() {
 }
 
 setTimeout(() => {
-  if (!localStorage.getItem("custom-rendezvous-server")) {
+  if (!getEffectiveOption("custom-rendezvous-server")) {
     testDelay();
   } else {
     console.log("Custom rendezvous server configured, skipping public server latency test");
@@ -810,7 +811,7 @@ setTimeout(() => {
 }, 100);
 
 function getDefaultUri(isRelay: Boolean = false): string {
-  const host = localStorage.getItem("custom-rendezvous-server");
+  const host = getEffectiveOption("custom-rendezvous-server");
   return getrUriFromRs(host || HOST, isRelay);
 }
 

@@ -792,11 +792,16 @@ class RustdeskImpl {
   }
 
   Future<String> mainGetAppName({dynamic hint}) {
-    return Future.value(mainGetAppNameSync(hint: hint));
+    try {
+      return Future.value(mainGetAppNameSync(hint: hint));
+    } catch (e) {
+        debugPrint("maybe failed here? $e");
+        return Future.value('');
+      }
   }
 
   String mainGetAppNameSync({dynamic hint}) {
-    return '[HardcodedName] Troldesk';
+    return js.context.callMethod('getByName', ['app-name']) ?? '';
   }
 
   String mainUriPrefixSync({dynamic hint}) {
