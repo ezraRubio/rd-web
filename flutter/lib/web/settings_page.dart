@@ -6,7 +6,8 @@ class WebSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _buildDesktopButton(context);
+    // return _buildDesktopButton(context);
+    return const SizedBox.shrink();
   }
 
   Widget _buildDesktopButton(BuildContext context) {
