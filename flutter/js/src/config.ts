@@ -53,27 +53,24 @@ export async function loadCustomConfig() {
     if (config[""] && config[""]["app-name"]) {
       _.setItem("app-name", config[""]["app-name"]);
     }
-
     if (config["default-settings"]) {
-      for (const [key, value] of Object.entries(config["default-settings"])) {
-        const normalized = key.replace(/_/g, "-");
-        _.setItem(`default:${normalized}`, value);
-        const underscored = normalized.replace(/-/g, "_");
-        _.setItem(`default:${underscored}`, value);
-      }
+      normalizeSettingName("default", config["default-settings"])
     }
-
     if (config["override-settings"]) {
-      for (const [key, value] of Object.entries(config["override-settings"])) {
-        const normalized = key.replace(/_/g, "-");
-        _.setItem(`override:${normalized}`, value);
-        const underscored = normalized.replace(/-/g, "_");
-        _.setItem(`override:${underscored}`, value);
-      }
+      normalizeSettingName("override", config["override-settings"])
     }
   } catch (e) {
     console.error("Failed to load custom config:", e);
   }
+}
+
+function normalizeSettingName(mode: "default" | "override", settings: Record<string, string>): void {
+      for (const [key, value] of Object.entries(settings)) {
+        const normalized = key.replace(/_/g, "-");
+        _.setItem(`${mode}:${normalized}`, value);
+        const underscored = normalized.replace(/-/g, "_");
+        _.setItem(`${mode}:${underscored}`, value);
+      }
 }
 
 export function getEffectiveOption(key: string): string {

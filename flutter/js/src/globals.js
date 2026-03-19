@@ -379,11 +379,7 @@ function _getByName(name, arg) {
     case 'option:user:default':
       return getUserDefaultOption(arg);
     case 'option:session':
-      if (curConn) {
-        return curConn.getOption(arg);
-      } else {
-        return getUserDefaultOption(arg);
-      }
+      return getUserDefaultOption(arg) || curConn?.getOption(arg);
     case 'option:peer':
       return getPeerOption(arg);
     case 'option:toggle':
