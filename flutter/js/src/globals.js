@@ -116,6 +116,8 @@ export async function startConn(id, password = undefined) {
 }
 
 export function close() {
+  // not sure if this is helping at all, need to fix the lifecycle of the connection
+  // if (yuvCanvas) yuvCanvas.clear()
   getConn()?.close();
   setConn(undefined);
 }

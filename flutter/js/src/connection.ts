@@ -584,18 +584,20 @@ export default class Connection {
       key_event.chr = this._lastKeyDownEvent;
       this._lastKeyDownEvent = undefined;
     }
-    if (alt && (name == "VK_MENU" || name == "RAlt")) {
-      alt = false;
-    }
-    if (ctrl && (name == "VK_CONTROL" || name == "RControl")) {
-      ctrl = false;
-    }
-    if (shift && (name == "VK_SHIFT" || name == "RShift")) {
-      shift = false;
-    }
-    if (command && (name == "Meta" || name == "RWin")) {
-      command = false;
-    }
+    // this is bound to get removed, keeping here in case i find a resound for this 
+    // i doesn't seem right to me to force modifiers to be false at this point
+    // if (alt && (name == "VK_MENU" || name == "RAlt")) {
+    //   alt = false;
+    // }
+    // if (ctrl && (name == "VK_CONTROL" || name == "RControl")) {
+    //   ctrl = false;
+    // }
+    // if (shift && (name == "VK_SHIFT" || name == "RShift")) {
+    //   shift = false;
+    // }
+    // if (command && (name == "Meta" || name == "RWin")) {
+    //   command = false;
+    // }
     key_event.down = down;
     key_event.press = press;
     key_event.modifiers = this.getMod(alt, ctrl, shift, command);
@@ -698,6 +700,13 @@ export default class Connection {
         break;
       case "unblock-input":
         option.block_input = message.OptionMessage_BoolOption.No;
+        break;
+      case "view-only":
+        option.disable_keyboard = v ? v2 : message.OptionMessage_BoolOption.No;
+        option.disable_clipboard = v ? v2 : message.OptionMessage_BoolOption.No;
+        option.show_remote_cursor = v ? v2 : message.OptionMessage_BoolOption.No;
+        option.enable_file_transfer = v ? v2 : message.OptionMessage_BoolOption.Yes;
+        option.lock_after_session_end = v ? v2 : message.OptionMessage_BoolOption.Yes;
         break;
       default:
         return;
