@@ -181,6 +181,21 @@ export function decrypt(signed, nonce, key) {
   return sodium.crypto_secretbox_open_easy(signed, makeOnce(nonce), key);
 }
 
+function physicalButtonsMap(hid) {
+  switch (hid) {
+    case 102:
+      // I think LockScreen is the expected behavior. But it's not working
+      // 'Power' would pull up the poweroff menu (poweroff, restart, etc)
+      return 'Power';
+    case 128:
+      return 'VolumeUp';
+    case 129:
+      return 'VolumeDown';
+    default:
+      return 'unknown';
+  }
+}
+
 window.setByName = (name, value) => {
   switch (name) {
     case 'remote_id':
@@ -234,6 +249,7 @@ window.setByName = (name, value) => {
     case 'flutter_key_event':
     case 'input_key':
       value = JSON.parse(value);
+      if (value.name === "flutter_key") value.name = physicalButtonsMap(value.usb_hid || 0);
       curConn.inputKey(value.name, value.down == 'true', value.press == 'true', value.alt == 'true', value.ctrl == 'true', value.shift == 'true', value.command == 'true');
       break;
     case 'input_string':

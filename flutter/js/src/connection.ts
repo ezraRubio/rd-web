@@ -584,20 +584,6 @@ export default class Connection {
       key_event.chr = this._lastKeyDownEvent;
       this._lastKeyDownEvent = undefined;
     }
-    // this is bound to get removed, keeping here in case i find a resound for this 
-    // i doesn't seem right to me to force modifiers to be false at this point
-    // if (alt && (name == "VK_MENU" || name == "RAlt")) {
-    //   alt = false;
-    // }
-    // if (ctrl && (name == "VK_CONTROL" || name == "RControl")) {
-    //   ctrl = false;
-    // }
-    // if (shift && (name == "VK_SHIFT" || name == "RShift")) {
-    //   shift = false;
-    // }
-    // if (command && (name == "Meta" || name == "RWin")) {
-    //   command = false;
-    // }
     key_event.down = down;
     key_event.press = press;
     key_event.modifiers = this.getMod(alt, ctrl, shift, command);
