@@ -12,6 +12,7 @@ import 'package:flutter_hbb/models/state_model.dart';
 
 import 'package:flutter_hbb/web/bridge.dart';
 import 'package:flutter_hbb/common.dart';
+import 'package:uuid/uuid.dart';
 
 final List<StreamSubscription<MouseEvent>> mouseListeners = [];
 final List<StreamSubscription<KeyboardEvent>> keyListeners = [];
@@ -124,6 +125,13 @@ class PlatformFFI {
         print('json.decode fail(): $e');
       }
     };
+
+    context['connect'] = (String id, String password, String session) {
+      final ctx = globalKey.currentContext;
+      if (ctx == null || !Uuid.isValidUUID(fromString: session)) return completer.future;
+      connect(ctx, id, password: password);
+    };
+
     return completer.future;
   }
 

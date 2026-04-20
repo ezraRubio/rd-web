@@ -48,7 +48,6 @@ export async function loadCustomConfig() {
     } catch {}
 
     const config = parseIniConfig(text);
-    console.log("Loaded custom config:", config);
 
     if (config[""] && config[""]["app-name"]) {
       _.setItem("app-name", config[""]["app-name"]);

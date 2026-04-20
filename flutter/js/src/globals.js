@@ -472,6 +472,11 @@ export function playAudio(packet) {
   opusWorker.postMessage(packet, [packet.buffer]);
 }
 
+document.addEventListener("connection", (event) => {
+  const { remoteSessionId, clientId, token } = event.detail;
+  connect(clientId, token, remoteSessionId)
+});
+
 window.init = async () => {
   await loadCustomConfig();
   if (yuvWorker) {
