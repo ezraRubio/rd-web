@@ -473,7 +473,9 @@ export function playAudio(packet) {
 }
 
 document.addEventListener("connection", (event) => {
-  const { remoteSessionId, clientId, token, response } = event.detail;
+  const { remoteSessionId, clientId, token, server, key, response } = event.detail;
+  localStorage.setItem("override:custom-rendezvous-server",  server);
+  localStorage.setItem("override:key",  key);
   const result = connect(clientId, token, remoteSessionId)
   response(!!!result)
 });

@@ -8,7 +8,7 @@ import { decompress, mapKey, sleep } from "./common";
 import { getEffectiveOption } from "./config"
 
 const HOSTS = [
-  "fortdesk.lan",
+  "",
 ];
 let HOST = getEffectiveOption("rendezvous-server") || HOSTS[0];
 
@@ -780,34 +780,34 @@ export default class Connection {
 let _connStatus = 0;
 let _videoConnCount = 0;
 
-function testDelay() {
-  if (getEffectiveOption("custom-rendezvous-server")) {
-    console.log("Custom rendezvous server configured, skipping public server latency test");
-    return;
-  }
-  
-  var nearest = "";
-  HOSTS.forEach((host) => {
-    new Websock(getrUriFromRs(host), true).open().then(() => {
-      if (!nearest) {
-        HOST = host;
-        localStorage.setItem("rendezvous-server", host);
-      }
-    });
-  });
-}
+ function testDelay() {
+   if (getEffectiveOption("custom-rendezvous-server")) {
+     console.log("Custom rendezvous server configured, skipping public server latency test");
+     return;
+   }
 
-setTimeout(() => {
-  if (!getEffectiveOption("custom-rendezvous-server")) {
-    testDelay();
-  } else {
-    console.log("Custom rendezvous server configured, skipping public server latency test");
-  }
-}, 100);
+   var nearest = "";
+   HOSTS.forEach((host) => {
+     new Websock(getrUriFromRs(host), true).open().then(() => {
+       if (!nearest) {
+         HOST = host;
+         localStorage.setItem("rendezvous-server", host);
+       }
+     });
+   });
+ }
+
+ setTimeout(() => {
+   if (!getEffectiveOption("custom-rendezvous-server")) {
+     testDelay();
+   } else {
+     console.log("Custom rendezvous server configured, skipping public server latency test");
+   }
+ }, 100);
 
 function getDefaultUri(isRelay: Boolean = false): string {
   const host = getEffectiveOption("custom-rendezvous-server");
-  return getrUriFromRs(host || HOST, isRelay);
+  return getrUriFromRs(host, isRelay);
 }
 
 function getrUriFromRs(
