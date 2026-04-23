@@ -35,17 +35,7 @@
   <script src="ogvjs-1.8.6/ogv.js"></script>
   <script src="yuv-canvas-1.2.6.js"></script>
   <script type="module" crossorigin src="js/dist/index.js"></script>
-  <script>
-    (() => {
-      window.addEventListener("message", e => {
-        const {type, remoteSessionId, clientId, token} = e.data
-        if (type !== "REMOTE_SESSION_READY" || !remoteSessionId || !clientId || !token) return
-        const detail = Object.freeze({remoteSessionId, clientId, token})
-        document.dispatchEvent(new CustomEvent("connection", { detail }))
-        e.source.postMessage({ type: "ACK" }, e.origin)
-      })
-    })()
-  </script>
+  <script src="flutter_bootstrap.js"></script>
   <style>
     .loading {
       display: flex;
@@ -100,7 +90,6 @@
   <div class="loading">
     <div class="loader"></div>
   </div>
-  <script src="flutter_bootstrap.js"></script>
   <script id="custom-config" type="text/plain">
     app-name=Fort Remote Desktop
     [override-settings]
@@ -108,6 +97,20 @@
     key=1+osBpZv1anmzl0VBLmVJXYvwDp3TN3nX+DS9YOcuXc=
     view_style=adaptive
     image_quality=balanced
+  </script>
+  <script>
+    (() => {
+      window.addEventListener("message", e => {
+        let result = null
+        const {type, remoteSessionId, clientId, token} = e.data
+        if (type !== "REMOTE_SESSION_READY" || !remoteSessionId || !clientId || !token) return
+        const detail = Object.freeze({remoteSessionId, clientId, token, response: r => result = r})
+        setTimeout(() => {
+          document.dispatchEvent(new CustomEvent("connection", { detail }))
+          e.source.postMessage({ type: "ACK", result }, e.origin)
+        }, 500)
+      })
+    })()
   </script>
 </body>
 

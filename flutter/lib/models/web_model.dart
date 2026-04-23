@@ -128,7 +128,7 @@ class PlatformFFI {
 
     context['connect'] = (String id, String password, String session) {
       final ctx = globalKey.currentContext;
-      if (ctx == null || !Uuid.isValidUUID(fromString: session)) return completer.future;
+      if (ctx == null || !Uuid.isValidUUID(fromString: session)) return "failure";
       connect(ctx, id, password: password);
     };
 

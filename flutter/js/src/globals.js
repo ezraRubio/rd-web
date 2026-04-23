@@ -473,8 +473,9 @@ export function playAudio(packet) {
 }
 
 document.addEventListener("connection", (event) => {
-  const { remoteSessionId, clientId, token } = event.detail;
-  connect(clientId, token, remoteSessionId)
+  const { remoteSessionId, clientId, token, response } = event.detail;
+  const result = connect(clientId, token, remoteSessionId)
+  response(!!!result)
 });
 
 window.init = async () => {
