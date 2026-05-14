@@ -91,7 +91,7 @@
     <div class="loader"></div>
   </div>
   <script id="custom-config" type="text/plain">
-    app-name=Fort Remote Desktop
+    app-name=Fort Remote Control
     [override-settings]
     view_style=adaptive
     image_quality=balanced
@@ -106,7 +106,7 @@
         setTimeout(() => {
           document.dispatchEvent(new CustomEvent("connection", { detail }))
           e.source.postMessage({ type: "ACK", result }, e.origin)
-        }, 500)
+        }, 800)
       })
     })()
   </script>

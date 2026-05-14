@@ -10,7 +10,6 @@ import { getEffectiveOption } from "./config"
 const HOSTS = [
   "",
 ];
-let HOST = getEffectiveOption("rendezvous-server") || HOSTS[0];
 
 type MsgboxCallback = (type: string, title: string, text: string) => void;
 type DrawCallback = (displayId: number, data: Uint8Array) => void;
@@ -790,7 +789,6 @@ let _videoConnCount = 0;
    HOSTS.forEach((host) => {
      new Websock(getrUriFromRs(host), true).open().then(() => {
        if (!nearest) {
-         HOST = host;
          localStorage.setItem("rendezvous-server", host);
        }
      });
@@ -815,13 +813,14 @@ function getrUriFromRs(
   isRelay: Boolean = false,
   roffset: number = 0
 ): string {
+  const domain = window.location.hostname
   if (uri.indexOf(":") > 0) {
     const tmp = uri.split(":");
     const port = parseInt(tmp[1]);
     uri = tmp[0] + ":" + (port + (isRelay ? roffset || 3 : 2)); //no point to roffset || 3 since 5 lines above is default to 0
-    return "wss://" + "fortdesk.lan";
+    return "wss://" + domain;
   }
-  return "wss://" + "fortdesk.lan" + (isRelay ? "/ws/relay" : "/ws/id");
+  return "wss://" + domain + (isRelay ? "/ws/relay" : "/ws/id");
 }
 
 export const PORT = 21116;
