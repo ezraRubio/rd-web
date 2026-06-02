@@ -35,64 +35,14 @@
     <script src="yuv-canvas-1.2.6.js"></script>
     <script type="module" crossorigin src="js/dist/index.js"></script>
     <script src="flutter_bootstrap.js"></script>
-    <style>
-      .loading {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin: 0;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        -ms-transform: translate(-50%, -50%);
-        transform: translate(-50%, -50%);
-      }
-
-      .loader {
-        border: 16px solid #f3f3f3;
-        border-radius: 50%;
-        border: 15px solid;
-        border-top: 16px solid #024eff;
-        border-right: 16px solid white;
-        border-bottom: 16px solid #024eff;
-        border-left: 16px solid white;
-        width: 120px;
-        height: 120px;
-        -webkit-animation: spin 2s linear infinite;
-        animation: spin 2s linear infinite;
-      }
-
-      @-webkit-keyframes spin {
-        0% {
-          -webkit-transform: rotate(0deg);
-        }
-
-        100% {
-          -webkit-transform: rotate(360deg);
-        }
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-    </style>
   </head>
 
-  <body>
-    <!-- <div class="loading"> -->
-    <!--   <div class="loader"></div> -->
-    <!-- </div> -->
+  <body style="background: #042e4a; margin: 0">
     <script id="custom-config" type="text/plain">
       app-name=Fort RC
       [override-settings]
       view_style=adaptive
-      image_quality=balanced
+      image_quality=low
     </script>
     <script>
       (() => {
@@ -119,7 +69,8 @@
           });
           setTimeout(() => {
             document.dispatchEvent(new CustomEvent("connection", { detail }));
-            e.source.postMessage({ type: "ACK", result }, e.origin);
+            console.log("connection result ", result);
+            e.source.postMessage({ type: "ACK", result: true }, e.origin);
           }, 800);
         });
       })();
