@@ -358,7 +358,8 @@ window.setByName = (name, value) => {
       queryOnlines(value);
       break;
     case 'change_prefer_codec':
-      curConn.changePreferCodec(value);
+      curConn.changePreferCodec();
+      break;
     case 'cursor':
       setCustomCursor(value);
       break;
@@ -411,7 +412,7 @@ function _getByName(name, arg) {
     case 'option:user:default':
       return getUserDefaultOption(arg);
     case 'option:session':
-      return getUserDefaultOption(arg) || curConn?.getOption(arg);
+      return curConn?.getOption(arg) ?? getUserDefaultOption(arg);
     case 'option:peer':
       return getPeerOption(arg);
     case 'option:toggle':
@@ -777,12 +778,18 @@ function increasePort(host, offset) {
 }
 
 function getAlternativeCodecs() {
-  return JSON.stringify({
-    vp8: true,
-    av1: false,
-    h264: false,
-    h265: false,
-  });
+  let vp9 = true;
+  let av1 = false, h264 = false, h265 = false;
+  try {
+    const caps = RTCRtpSender.getCapabilities('video');
+    for (const c of caps?.codecs ?? []) {
+      const mt = c.mimeType.toLowerCase();
+      if (mt.includes('av1')) av1 = true;
+      if (mt.includes('h264')) h264 = true;
+      if (mt.includes('h265')) h265 = true;
+    }
+  } catch (_) {}
+  return JSON.stringify({ vp8: true, vp9, av1, h264, h265 });
 }
 // ========================== settings end ===========================
 

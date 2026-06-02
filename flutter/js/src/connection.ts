@@ -752,8 +752,24 @@ export default class Connection {
     this._ws?.sendMessage({ misc });
   }
 
-  changePreferCodec(value: string) {
-    this.setOption("codec-preference", value);
+  changePreferCodec() {
+    const pref = this._options["codec-preference"] || "auto";
+    const map: Record<string, message.SupportedDecoding_PreferCodec> = {
+      auto: message.SupportedDecoding_PreferCodec.Auto,
+      vp8: message.SupportedDecoding_PreferCodec.VP8,
+      vp9: message.SupportedDecoding_PreferCodec.VP9,
+      av1: message.SupportedDecoding_PreferCodec.AV1,
+      h264: message.SupportedDecoding_PreferCodec.H264,
+      h265: message.SupportedDecoding_PreferCodec.H265,
+    };
+    const preferCodec = map[pref] ?? message.SupportedDecoding_PreferCodec.Auto;
+    const option = message.OptionMessage.fromPartial({
+      supported_decoding: message.SupportedDecoding.fromPartial({
+        prefer: preferCodec,
+      }),
+    });
+    const misc = message.Misc.fromPartial({ option });
+    this._ws?.sendMessage({ misc });
   }
 
   send2fa(value: string) {
