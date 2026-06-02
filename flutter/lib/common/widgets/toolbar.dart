@@ -525,7 +525,7 @@ Future<List<TToggleMenu>> toolbarDisplayToggle(
   final sessionId = ffi.sessionId;
 
   // mute
-  if (perms['audio'] != false) {
+  if (perms['audio'] != false && !isWeb) {
     final option = 'disable-audio';
     final value =
         bind.sessionGetToggleOptionSync(sessionId: sessionId, arg: option);
@@ -564,7 +564,7 @@ Future<List<TToggleMenu>> toolbarDisplayToggle(
         child: Text(translate('Enable file copy and paste'))));
   }
   // disable clipboard
-  if (ffiModel.keyboard && perms['clipboard'] != false) {
+  if (ffiModel.keyboard && perms['clipboard'] != false && !isWeb) {
     final enabled = !ffiModel.viewOnly;
     final option = 'disable-clipboard';
     var value =
