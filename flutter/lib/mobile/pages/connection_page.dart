@@ -80,14 +80,14 @@ class _ConnectionPageState extends State<ConnectionPage> {
       slivers: [
         SliverList(
             delegate: SliverChildListDelegate([
-          if (!bind.isCustomClient() && !isIOS)
-            Obx(() => _buildUpdateUI(stateGlobal.updateUrl.value)),
+          // if (!bind.isCustomClient() && !isIOS)
+          //   Obx(() => _buildUpdateUI(stateGlobal.updateUrl.value)),
           _buildRemoteIDTextField(),
-        ])),
-        SliverFillRemaining(
-          hasScrollBody: true,
-          child: PeerTabPage(),
-        )
+        ]))//,
+        // SliverFillRemaining(
+        //   hasScrollBody: true,
+        //   child: PeerTabPage(),
+        // )
       ],
     ).marginOnly(top: 2, left: 10, right: 10);
   }
@@ -349,9 +349,9 @@ class _ConnectionPageState extends State<ConnectionPage> {
       ),
     );
     final child = Column(children: [
-      if (isWebDesktop)
-        getConnectionPageTitle(context, true)
-            .marginOnly(bottom: 10, top: 15, left: 12),
+      // if (isWebDesktop)
+      //   getConnectionPageTitle(context, true)
+      //       .marginOnly(bottom: 10, top: 15, left: 12),
       w
     ]);
     return Align(

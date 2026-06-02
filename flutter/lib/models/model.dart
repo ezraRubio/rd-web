@@ -1256,18 +1256,20 @@ class ImageModel with ChangeNotifier {
     _webDecodingRgba = false;
   }
 
-  onRgba(int display, Uint8List rgba) async {
+  onRgba(int display, Uint8List rgba, {int? width, int? height}) async {
     try {
-      await decodeAndUpdate(display, rgba);
+      await decodeAndUpdate(display, rgba, width: width, height: height);
     } catch (e) {
       debugPrint('onRgba error: $e');
     }
     platformFFI.nextRgba(sessionId, display);
   }
 
-  decodeAndUpdate(int display, Uint8List rgba) async {
+  decodeAndUpdate(int display, Uint8List rgba, {int? width, int? height}) async {
     final pid = parent.target?.id;
-    final rect = parent.target?.ffiModel.pi.getDisplayRect(display);
+    final rect = (width != null && height != null)
+        ? Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble())
+        : parent.target?.ffiModel.pi.getDisplayRect(display);
     final image = await img.decodeImageFromPixels(
       rgba,
       rect?.width.toInt() ?? 0,
@@ -2732,9 +2734,9 @@ class FFI {
     }
 
     if (isWeb) {
-      platformFFI.setRgbaCallback((int display, Uint8List data) {
+      platformFFI.setRgbaCallback((int display, int width, int height, Uint8List data) {
         onEvent2UIRgba();
-        imageModel.onRgba(display, data);
+        imageModel.onRgba(display, data, width: width, height: height);
       });
       this.id = id;
       return;

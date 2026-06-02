@@ -1,8 +1,7 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-
-<head>
-  <!--
+  <head>
+    <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
 
@@ -15,101 +14,115 @@
     This is a placeholder for base href that will be replaced by the value of
     the `--base-href` argument provided to `flutter build`.
   -->
-  <base href="/">
+    <base href="/" />
 
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="TROLOLO">
+    <meta charset="UTF-8" />
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
+    <meta name="description" content="TROLOLO" />
 
-  <!-- iOS meta tags & icons -->
-  <!-- <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- iOS meta tags & icons -->
+    <!-- <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="RustDesk"> -->
-  <!-- <link rel="apple-touch-icon" href="icons/Icon-192.png"> -->
+    <!-- <link rel="apple-touch-icon" href="icons/Icon-192.png"> -->
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 
-  <title> - </title>
-  <link rel="manifest" href="manifest.json">
-  <script src="ogvjs-1.8.6/ogv.js"></script>
-  <script src="yuv-canvas-1.2.6.js"></script>
-  <script type="module" crossorigin src="js/dist/index.js"></script>
-  <script src="flutter_bootstrap.js"></script>
-  <style>
-    .loading {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin: 0;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      -ms-transform: translate(-50%, -50%);
-      transform: translate(-50%, -50%);
-    }
-
-    .loader {
-      border: 16px solid #f3f3f3;
-      border-radius: 50%;
-      border: 15px solid;
-      border-top: 16px solid #024eff;
-      border-right: 16px solid white;
-      border-bottom: 16px solid #024eff;
-      border-left: 16px solid white;
-      width: 120px;
-      height: 120px;
-      -webkit-animation: spin 2s linear infinite;
-      animation: spin 2s linear infinite;
-    }
-
-    @-webkit-keyframes spin {
-      0% {
-        -webkit-transform: rotate(0deg);
+    <title>-</title>
+    <link rel="manifest" href="manifest.json" />
+    <script src="ogvjs-1.8.6/ogv.js"></script>
+    <script src="yuv-canvas-1.2.6.js"></script>
+    <script type="module" crossorigin src="js/dist/index.js"></script>
+    <script src="flutter_bootstrap.js"></script>
+    <style>
+      .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        -ms-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
       }
 
-      100% {
-        -webkit-transform: rotate(360deg);
+      .loader {
+        border: 16px solid #f3f3f3;
+        border-radius: 50%;
+        border: 15px solid;
+        border-top: 16px solid #024eff;
+        border-right: 16px solid white;
+        border-bottom: 16px solid #024eff;
+        border-left: 16px solid white;
+        width: 120px;
+        height: 120px;
+        -webkit-animation: spin 2s linear infinite;
+        animation: spin 2s linear infinite;
       }
-    }
 
-    @keyframes spin {
-      0% {
-        transform: rotate(0deg);
+      @-webkit-keyframes spin {
+        0% {
+          -webkit-transform: rotate(0deg);
+        }
+
+        100% {
+          -webkit-transform: rotate(360deg);
+        }
       }
 
-      100% {
-        transform: rotate(360deg);
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
       }
-    }
-  </style>
+    </style>
+  </head>
 
-</head>
-
-<body>
-  <div class="loading">
-    <div class="loader"></div>
-  </div>
-  <script id="custom-config" type="text/plain">
-    app-name=Fort Remote Control
-    [override-settings]
-    view_style=adaptive
-    image_quality=balanced
-  </script>
-  <script>
-    (() => {
-      window.addEventListener("message", e => {
-        let result = null
-        const {type, remoteSessionId, clientId, token, server, key} = e.data
-        if (type !== "REMOTE_SESSION_READY" || !remoteSessionId || !clientId || !token || !server || !key) return
-        const detail = Object.freeze({remoteSessionId, clientId, token, server, key, response: r => result = r})
-        setTimeout(() => {
-          document.dispatchEvent(new CustomEvent("connection", { detail }))
-          e.source.postMessage({ type: "ACK", result }, e.origin)
-        }, 800)
-      })
-    })()
-  </script>
-</body>
-
+  <body>
+    <!-- <div class="loading"> -->
+    <!--   <div class="loader"></div> -->
+    <!-- </div> -->
+    <script id="custom-config" type="text/plain">
+      app-name=Fort RC
+      [override-settings]
+      view_style=adaptive
+      image_quality=balanced
+    </script>
+    <script>
+      (() => {
+        window.addEventListener("message", (e) => {
+          let result = null;
+          const { type, remoteSessionId, clientId, token, server, key } =
+            e.data;
+          if (
+            type !== "REMOTE_SESSION_READY" ||
+            !remoteSessionId ||
+            !clientId ||
+            !token ||
+            !server ||
+            !key
+          )
+            return;
+          const detail = Object.freeze({
+            remoteSessionId,
+            clientId,
+            token,
+            server,
+            key,
+            response: (r) => (result = r),
+          });
+          setTimeout(() => {
+            document.dispatchEvent(new CustomEvent("connection", { detail }));
+            e.source.postMessage({ type: "ACK", result }, e.origin);
+          }, 800);
+        });
+      })();
+    </script>
+  </body>
 </html>

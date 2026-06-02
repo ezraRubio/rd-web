@@ -59,6 +59,7 @@ let gl;
 let pixels;
 let flipPixels;
 let oldSize;
+let lastDw = 0, lastDh = 0;
 if (YUVCanvas.WebGLFrameSink.isAvailable()) {
   var canvas = document.createElement('canvas');
   yuvCanvas = YUVCanvas.attach(canvas, { webGL: true });
@@ -72,6 +73,18 @@ export function draw(display, frame) {
   if (yuvWorker) {
     yuvWorker.postMessage({ display, frame });
   } else {
+    var dw = frame.format.displayWidth;
+    var dh = frame.format.displayHeight;
+    if (dw !== lastDw || dh !== lastDh) {
+      lastDw = dw;
+      lastDh = dh;
+      canvas.width = 0;
+      canvas.height = 0;
+      canvas = document.createElement('canvas');
+      yuvCanvas = YUVCanvas.attach(canvas, { webGL: true });
+      gl = canvas.getContext("webgl");
+      oldSize = 0;
+    }
     var tm0 = new Date().getTime();
     yuvCanvas.drawFrame(frame);
     var width = canvas.width;
@@ -88,7 +101,7 @@ export function draw(display, frame) {
     for (let i = 0; i < size; i += row) {
       flipPixels.set(pixels.subarray(i, i + row), end - i);
     }
-    onRgba(display, flipPixels);
+    onRgba(display, width, height, flipPixels);
     testSpeed[1] += new Date().getTime() - tm0;
     testSpeed[0] += 1;
     if (testSpeed[0] > 30) {
@@ -239,6 +252,7 @@ window.setByName = (name, value) => {
       curConn.ctrlAltDel();
       break;
     case 'switch_display':
+      console.log("switch display setter event was called with value ", value)
       curConn.switchDisplay(value);
       break;
     case 'remove':

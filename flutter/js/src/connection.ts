@@ -526,6 +526,17 @@ export default class Connection {
     } else if (misc.switch_display) {
       this.loadVideoDecoder();
       globals.pushEvent("switch_display", misc.switch_display);
+      // Update _peerInfo and persist so decoder gets correct dimensions
+      const sd = misc.switch_display;
+      console.log("handling misc, switch display, ", sd)
+      if (this._peerInfo && this._peerInfo.displays) {
+          const idx = sd.display;
+          if (this._peerInfo.displays[idx]) {
+              this._peerInfo.displays[idx].width = sd.width;
+              this._peerInfo.displays[idx].height = sd.height;
+          }
+      }
+      this.setOption("info", this._peerInfo);
     } else if (misc.close_reason) {
       this.msgbox("error", "Connection Error", misc.close_reason);
       this.close();
@@ -606,6 +617,7 @@ export default class Connection {
   }
 
   switchDisplay(display: number) {
+    console.log("switchDisplay display ", display)
     const switch_display = message.SwitchDisplay.fromPartial({ display });
     const misc = message.Misc.fromPartial({ switch_display });
     this._ws?.sendMessage({ misc });

@@ -259,7 +259,7 @@ class PlatformFFI {
     _eventCallback = fun;
   }
 
-  void setRgbaCallback(void Function(int, Uint8List) fun) async {}
+  void setRgbaCallback(void Function(int, int, int, Uint8List) fun) async {}
 
   void startDesktopWebListener() {}
 
