@@ -263,11 +263,11 @@ export default class Connection {
         this._hash = msg?.hash;
         if (this._plaintextPassword) {
           this.login(this._plaintextPassword);
-        } else {
-          if (!this._password)
-            this.msgbox("input-password", "Password Required", "");
-            continue
+        } else if (this._password) {
           this.login();
+        } else {
+          this.msgbox("input-password", "Password Required", "");
+          continue;
         }
       } else if (msg?.test_delay) {
         const test_delay = msg?.test_delay;
