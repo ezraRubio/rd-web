@@ -23,7 +23,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'common.dart';
 import 'consts.dart';
-import 'mobile/pages/home_page.dart';
+import 'mobile/pages/home_page.dart';  // HomePage (mobile) still needed; WebHomePage no longer used
 import 'mobile/pages/server_page.dart';
 import 'models/platform_model.dart';
 
@@ -374,6 +374,18 @@ WindowOptions getHiddenTitleBarWindowOptions(
   );
 }
 
+// [REMOVED_HOME_PAGE] Minimal placeholder replacing WebHomePage for web.
+// Shows nothing — the web app is now a pure session viewer driven by
+// postMessage REMOTE_SESSION_READY events from a parent window.
+class _WebPlaceholderPage extends StatelessWidget {
+  const _WebPlaceholderPage();
+  @override
+  Widget build(BuildContext context) {
+    stateGlobal.isInMainPage = true;
+    return const SizedBox.shrink();
+  }
+}
+
 class App extends StatefulWidget {
   @override
   State<App> createState() => _AppState();
@@ -451,16 +463,19 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         child: GetMaterialApp(
           navigatorKey: globalKey,
           debugShowCheckedModeBanner: false,
-          title: isWeb
-              ? '${bind.mainGetAppNameSync()} Web Client V2 (Preview)'
-              : bind.mainGetAppNameSync(),
+          title: bind.mainGetAppNameSync(),
+          // title: isWeb
+          //     ? '${bind.mainGetAppNameSync()} Web Client V2 (Preview)'
+          //     : bind.mainGetAppNameSync(),
           theme: MyTheme.lightTheme,
           darkTheme: MyTheme.darkTheme,
           themeMode: MyTheme.currentThemeMode(),
+          // [REMOVED_HOME_PAGE] Replaced WebHomePage() with _WebPlaceholderPage()
+          // Original: isWeb ? WebHomePage() : HomePage(),
           home: isDesktop
               ? const DesktopTabPage()
               : isWeb
-                  ? WebHomePage()
+                  ? const _WebPlaceholderPage()
                   : HomePage(),
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,

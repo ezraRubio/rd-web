@@ -8,10 +8,14 @@ import 'dart:html';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 
 import 'package:flutter_hbb/web/bridge.dart';
 import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/desktop/widgets/remote_toolbar.dart';
+import 'package:flutter_hbb/desktop/pages/remote_page.dart' as desktop_remote;
+import 'package:uuid/uuid.dart';
 
 final List<StreamSubscription<MouseEvent>> mouseListeners = [];
 final List<StreamSubscription<KeyboardEvent>> keyListeners = [];
@@ -50,7 +54,6 @@ class PlatformFFI {
 
   bool registerEventHandler(
       String eventName, String handlerName, HandleEvent handler) {
-    debugPrint('registerEventHandler $eventName $handlerName');
     var handlers = _eventHandlers[eventName];
     if (handlers == null) {
       _eventHandlers[eventName] = {handlerName: handler};
@@ -66,7 +69,6 @@ class PlatformFFI {
   }
 
   void unregisterEventHandler(String eventName, String handlerName) {
-    debugPrint('unregisterEventHandler $eventName $handlerName');
     var handlers = _eventHandlers[eventName];
     if (handlers != null) {
       handlers.remove(handlerName);
@@ -126,6 +128,29 @@ class PlatformFFI {
         print('json.decode fail(): $e');
       }
     };
+
+    // [REMOVED_HOME_PAGE] Direct push via NavigatorState instead of common.connect().
+    // Old code kept below for reference:
+    // context['connect'] = (String id, String password, String session) {
+    //   final ctx = globalKey.currentContext;
+    //   if (ctx == null || !Uuid.isValidUUID(fromString: session)) return "failure";
+    //   connect(ctx, id, password: password);
+    // };
+    context['connect'] = (String id, String password, String session) {
+      if (!Uuid.isValidUUID(fromString: session)) return "failure";
+      final navigator = globalKey.currentState;
+      if (navigator == null) return "failure";
+      navigator.push(MaterialPageRoute(
+        builder: (context) => desktop_remote.RemotePage(
+          key: ValueKey(id),
+          id: id,
+          toolbarState: ToolbarState(),
+          password: password,
+        ),
+      ));
+      stateGlobal.isInMainPage = false;
+    };
+
     return completer.future;
   }
 
@@ -140,10 +165,10 @@ class PlatformFFI {
     };
   }
 
-  void setRgbaCallback(void Function(int, Uint8List) fun) {
-    context["onRgba"] = (int display, Uint8List? rgba) {
+  void setRgbaCallback(void Function(int, int, int, Uint8List) fun) {
+    context["onRgba"] = (int display, int width, int height, Uint8List? rgba) {
       if (rgba != null) {
-        fun(display, rgba);
+        fun(display, width, height, rgba);
       }
     };
   }

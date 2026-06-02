@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+  <head>
+    <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+    <base href="/" />
+
+    <meta charset="UTF-8" />
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
+    <meta name="description" content="TROLOLO" />
+
+    <!-- iOS meta tags & icons -->
+    <!-- <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="RustDesk"> -->
+    <!-- <link rel="apple-touch-icon" href="icons/Icon-192.png"> -->
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+
+    <title>-</title>
+    <link rel="manifest" href="manifest.json" />
+    <script src="ogvjs-1.8.6/ogv.js"></script>
+    <script src="yuv-canvas-1.2.6.js"></script>
+    <script type="module" crossorigin src="js/dist/index.js"></script>
+    <script src="flutter_bootstrap.js"></script>
+  </head>
+
+  <body style="background: #042e4a; margin: 0">
+    <script id="custom-config" type="text/plain">
+      app-name=Fort RC
+      [override-settings]
+      view_style=adaptive
+      image_quality=low
+    </script>
+    <script>
+      (() => {
+        window.addEventListener("message", (e) => {
+          let result = null;
+          const { type, remoteSessionId, clientId, token, server, key } =
+            e.data;
+          if (
+            type !== "REMOTE_SESSION_READY" ||
+            !remoteSessionId ||
+            !clientId ||
+            !token ||
+            !server ||
+            !key
+          )
+            return;
+          const detail = Object.freeze({
+            remoteSessionId,
+            clientId,
+            token,
+            server,
+            key,
+            response: (r) => (result = r),
+          });
+          setTimeout(() => {
+            document.dispatchEvent(new CustomEvent("connection", { detail }));
+            console.log("connection result ", result);
+            e.source.postMessage({ type: "ACK", result: true }, e.origin);
+          }, 800);
+        });
+      })();
+    </script>
+  </body>
+</html>

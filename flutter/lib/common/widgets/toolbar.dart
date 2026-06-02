@@ -524,18 +524,8 @@ Future<List<TToggleMenu>> toolbarDisplayToggle(
   final perms = ffiModel.permissions;
   final sessionId = ffi.sessionId;
 
-  // show quality monitor
-  final option = 'show-quality-monitor';
-  v.add(TToggleMenu(
-      value: bind.sessionGetToggleOptionSync(sessionId: sessionId, arg: option),
-      onChanged: (value) async {
-        if (value == null) return;
-        await bind.sessionToggleOption(sessionId: sessionId, value: option);
-        ffi.qualityMonitorModel.checkShowQualityMonitor(sessionId);
-      },
-      child: Text(translate('Show quality monitor'))));
   // mute
-  if (perms['audio'] != false) {
+  if (perms['audio'] != false && !isWeb) {
     final option = 'disable-audio';
     final value =
         bind.sessionGetToggleOptionSync(sessionId: sessionId, arg: option);
@@ -574,7 +564,7 @@ Future<List<TToggleMenu>> toolbarDisplayToggle(
         child: Text(translate('Enable file copy and paste'))));
   }
   // disable clipboard
-  if (ffiModel.keyboard && perms['clipboard'] != false) {
+  if (ffiModel.keyboard && perms['clipboard'] != false && !isWeb) {
     final enabled = !ffiModel.viewOnly;
     final option = 'disable-clipboard';
     var value =
@@ -775,7 +765,7 @@ List<TToggleMenu> toolbarKeyboardToggles(FFI ffi) {
   }
 
   // reverse mouse wheel
-  if (ffiModel.keyboard) {
+  if (ffiModel.keyboard && !isWeb) {
     var optionValue =
         bind.sessionGetReverseMouseWheelSync(sessionId: sessionId) ?? '';
     if (optionValue == '') {
@@ -795,7 +785,7 @@ List<TToggleMenu> toolbarKeyboardToggles(FFI ffi) {
   }
 
   // swap left right mouse
-  if (ffiModel.keyboard) {
+  if (ffiModel.keyboard && !isWeb) {
     final option = 'swap-left-right-mouse';
     final value =
         bind.sessionGetToggleOptionSync(sessionId: sessionId, arg: option);

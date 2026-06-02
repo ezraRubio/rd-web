@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'dart:html' as html;
 import 'package:back_button_interceptor/back_button_interceptor.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
@@ -455,8 +456,8 @@ class MyTheme {
     useMaterial3: false,
     brightness: Brightness.dark,
     hoverColor: Color.fromARGB(255, 45, 46, 53),
-    scaffoldBackgroundColor: Color(0xFF18191E),
-    dialogBackgroundColor: Color(0xFF18191E),
+    scaffoldBackgroundColor: Color(0xFF042E4A),
+    dialogBackgroundColor: Color(0xFF042E4A),
     appBarTheme: AppBarTheme(
       shadowColor: Colors.transparent,
     ),
@@ -466,14 +467,14 @@ class MyTheme {
         borderRadius: BorderRadius.circular(18.0),
         side: BorderSide(
           width: 1,
-          color: Color(0xFF24252B),
+          color: Color(0xFF042E4A),
         ),
       ),
     ),
     scrollbarTheme: scrollbarThemeDark,
     inputDecorationTheme: (isDesktop || isWebDesktop)
         ? InputDecorationTheme(
-            fillColor: Color(0xFF24252B),
+            fillColor: Color(0xFF042E4A),
             filled: true,
             isDense: true,
             border: OutlineInputBorder(
@@ -492,7 +493,7 @@ class MyTheme {
         color: accent80,
       ),
     ),
-    cardColor: Color(0xFF24252B),
+    cardColor: Color(0xFF042E4A),
     visualDensity: VisualDensity.adaptivePlatformDensity,
     tabBarTheme: const TabBarTheme(
       labelColor: Colors.white70,
@@ -526,7 +527,7 @@ class MyTheme {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        backgroundColor: Color(0xFF24252B),
+        backgroundColor: Color(0xFF042E4A),
         side: BorderSide(color: Colors.white12, width: 0.5),
         disabledForegroundColor: Colors.white70,
         foregroundColor: Colors.white70,
@@ -545,7 +546,7 @@ class MyTheme {
     colorScheme: ColorScheme.dark(
       primary: Colors.blue,
       secondary: accent,
-      background: Color(0xFF24252B),
+      background: Color(0xFF042E4A),
     ),
     popupMenuTheme: PopupMenuThemeData(
         shape: RoundedRectangleBorder(
@@ -693,6 +694,7 @@ closeConnection({String? id}) {
     }();
   } else {
     if (isWeb) {
+      html.window.close();
       Navigator.popUntil(globalKey.currentContext!, ModalRoute.withName("/"));
       stateGlobal.isInMainPage = true;
     } else {
@@ -1506,9 +1508,7 @@ late FFI _globalFFI;
 FFI get gFFI => _globalFFI;
 
 Future<void> initGlobalFFI() async {
-  debugPrint("_globalFFI init");
   _globalFFI = FFI(null);
-  debugPrint("_globalFFI init end");
   // after `put`, can also be globally found by Get.find<FFI>();
   Get.put<FFI>(_globalFFI, permanent: true);
 }
@@ -2035,7 +2035,6 @@ Future<bool> initUniLinks() async {
   // check cold boot
   try {
     final initialLink = await getInitialLink();
-    print("initialLink: $initialLink");
     if (initialLink == null || initialLink.isEmpty) {
       return false;
     }
@@ -3108,7 +3107,8 @@ parseParamScreenRect(Map<String, dynamic> params) {
   return screenRect;
 }
 
-get isInputSourceFlutter => stateGlobal.getInputSource() == "Input source 2";
+get currentInputSource => stateGlobal.getInputSource();
+get isInputSourceFlutter => currentInputSource == "Input source 2";
 
 class _ReconnectCountDownButton extends StatefulWidget {
   _ReconnectCountDownButton({

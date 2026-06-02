@@ -61,7 +61,6 @@ class PlatformFFI {
 
   bool registerEventHandler(
       String eventName, String handlerName, HandleEvent handler) {
-    debugPrint('registerEventHandler $eventName $handlerName');
     var handlers = _eventHandlers[eventName];
     if (handlers == null) {
       _eventHandlers[eventName] = {handlerName: handler};
@@ -77,7 +76,6 @@ class PlatformFFI {
   }
 
   void unregisterEventHandler(String eventName, String handlerName) {
-    debugPrint('unregisterEventHandler $eventName $handlerName');
     var handlers = _eventHandlers[eventName];
     if (handlers != null) {
       handlers.remove(handlerName);
@@ -261,7 +259,7 @@ class PlatformFFI {
     _eventCallback = fun;
   }
 
-  void setRgbaCallback(void Function(int, Uint8List) fun) async {}
+  void setRgbaCallback(void Function(int, int, int, Uint8List) fun) async {}
 
   void startDesktopWebListener() {}
 
