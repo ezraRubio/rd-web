@@ -51,7 +51,7 @@ jobs:
         working-directory: flutter/js
         run: |
           yarn install --frozen-lockfile
-          yarn build
+          yarn build:release
 
       - name: Build Flutter Web
         run: |

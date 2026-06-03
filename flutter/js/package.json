@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "vite",
     "build": "cmd /c \"python gen_js_from_hbb.py > src\\gen_js_from_hbb.ts && python ts_proto.py && tsc && vite build --emptyOutDir\"",
+    "build:release": "python gen_js_from_hbb.py > src/gen_js_from_hbb.ts && python ts_proto.py && tsc && vite build --emptyOutDir",
     "preview": "vite preview"
   },
   "devDependencies": {
