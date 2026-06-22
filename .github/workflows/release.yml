@@ -67,7 +67,7 @@ jobs:
       - name: Publish artifact
         run: |
           mkdir -p "/media/store/release/$SOLUTION_NAME/$VERSION_NAME/dist"
-          cp -rf ./build/web/ /media/store/release/$SOLUTION_NAME/$VERSION_NAME/dist
+          cp -a ./build/web/. /media/store/release/$SOLUTION_NAME/$VERSION_NAME/dist/
           echo "[Dist directory](http://builder.tmgltd.co.il/$SOLUTION_NAME/$VERSION_NAME)" >> $GITHUB_STEP_SUMMARY
 
       - name: Add release tag to sources
