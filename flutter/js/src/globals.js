@@ -497,13 +497,38 @@ export function playAudio(packet) {
   opusWorker.postMessage(packet, [packet.buffer]);
 }
 
-document.addEventListener("connection", (event) => {
-  const { remoteSessionId, clientId, token, server, key, response } =
+let _connectReadyResolve;
+const _connectReadyPromise = new Promise((resolve) => {
+  _connectReadyResolve = resolve;
+});
+
+let _connectImpl;
+Object.defineProperty(window, "connect", {
+  set(fn) {
+    _connectImpl = fn;
+    _connectReadyResolve();
+  },
+  get() {
+    return _connectImpl;
+  },
+});
+
+document.addEventListener("connection", async (event) => {
+  const { remoteSessionId, clientId, token, server, key, source, origin } =
     event.detail;
   localStorage.setItem("override:custom-rendezvous-server", server);
   localStorage.setItem("override:key", key);
-  const result = connect(clientId, token, remoteSessionId);
-  response(!!!result);
+  try {
+    await _connectReadyPromise;
+    const result = await _connectImpl(clientId, token, remoteSessionId);
+    source.postMessage({ type: "ACK", result: !!result }, origin);
+  } catch (e) {
+    console.error("connection() failed:", e);
+    source.postMessage(
+      { type: "ACK", result: false, error: e.message },
+      origin,
+    );
+  }
 });
 
 window.init = async () => {

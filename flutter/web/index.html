@@ -44,35 +44,28 @@
       image_quality=low
     </script>
     <script>
-      (() => {
-        window.addEventListener("message", (e) => {
-          let result = null;
-          const { type, remoteSessionId, clientId, token, server, key } =
-            e.data;
-          if (
-            type !== "REMOTE_SESSION_READY" ||
-            !remoteSessionId ||
-            !clientId ||
-            !token ||
-            !server ||
-            !key
-          )
-            return;
-          const detail = Object.freeze({
-            remoteSessionId,
-            clientId,
-            token,
-            server,
-            key,
-            response: (r) => (result = r),
-          });
-          setTimeout(() => {
-            document.dispatchEvent(new CustomEvent("connection", { detail }));
-            console.log("connection result ", result);
-            e.source.postMessage({ type: "ACK", result: true }, e.origin);
-          }, 800);
+      window.addEventListener("message", (e) => {
+        const { type, remoteSessionId, clientId, token, server, key } = e.data;
+        if (
+          type !== "REMOTE_SESSION_READY" ||
+          !remoteSessionId ||
+          !clientId ||
+          !token ||
+          !server ||
+          !key
+        )
+          return;
+        const detail = Object.freeze({
+          remoteSessionId,
+          clientId,
+          token,
+          server,
+          key,
+          source: e.source,
+          origin: e.origin,
         });
-      })();
+        document.dispatchEvent(new CustomEvent("connection", { detail }));
+      });
     </script>
   </body>
 </html>

@@ -25,6 +25,7 @@ typedef HandleEvent = Future<void> Function(Map<String, dynamic> evt);
 class PlatformFFI {
   final _eventHandlers = <String, Map<String, HandleEvent>>{};
   final RustdeskImpl _ffiBind = RustdeskImpl();
+  final _navigatorReady = Completer<void>();
 
   static String getByName(String name, [String arg = '']) {
     return context.callMethod('getByName', [name, arg]);
@@ -136,11 +137,12 @@ class PlatformFFI {
     //   if (ctx == null || !Uuid.isValidUUID(fromString: session)) return "failure";
     //   connect(ctx, id, password: password);
     // };
-    context['connect'] = (String id, String password, String session) {
-      if (!Uuid.isValidUUID(fromString: session)) return "failure";
-      final navigator = globalKey.currentState;
-      if (navigator == null) return "failure";
-      navigator.push(MaterialPageRoute(
+    context['connect'] = (String id, String password, String session) async {
+      if (!Uuid.isValidUUID(fromString: session)) return null;
+      if (globalKey.currentState == null) {
+        await _navigatorReady.future;
+      }
+      globalKey.currentState!.push(MaterialPageRoute(
         builder: (context) => desktop_remote.RemotePage(
           key: ValueKey(id),
           id: id,
@@ -152,6 +154,10 @@ class PlatformFFI {
     };
 
     return completer.future;
+  }
+
+  void onNavigatorReady() {
+    if (!_navigatorReady.isCompleted) _navigatorReady.complete();
   }
 
   void setEventCallback(void Function(Map<String, dynamic>) fun) {

@@ -417,6 +417,9 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     };
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _updateOrientation());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isWeb) platformFFI.onNavigatorReady();
+    });
   }
 
   @override
