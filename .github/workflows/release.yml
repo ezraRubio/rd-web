@@ -55,10 +55,14 @@ jobs:
           yarn install --frozen-lockfile
           yarn build:release
 
+      - name: Verify Vite entry in web index
+        run: |
+          grep -E 'src="js/dist/index-[^"]+\.js"' web/index.html
+
       - name: Build Flutter Web
         run: |
           flutter pub get
-          flutter build web --release
+          flutter build web --release --pwa-strategy=none
 
       - name: Archive release directory
         run: |

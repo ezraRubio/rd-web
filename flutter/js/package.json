@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "cmd /c \"python gen_js_from_hbb.py > src\\gen_js_from_hbb.ts && python ts_proto.py && tsc && vite build --emptyOutDir\"",
-    "build:release": "python gen_js_from_hbb.py > src/gen_js_from_hbb.ts && python ts_proto.py && tsc && vite build --emptyOutDir",
+    "build": "cmd /c \"python gen_js_from_hbb.py > src\\gen_js_from_hbb.ts && python ts_proto.py && tsc && vite build --emptyOutDir && python patch_web_index.py\"",
+    "build:release": "python gen_js_from_hbb.py > src/gen_js_from_hbb.ts && python ts_proto.py && tsc && vite build --emptyOutDir && python patch_web_index.py",
     "preview": "vite preview"
   },
   "devDependencies": {

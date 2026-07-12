@@ -12,16 +12,17 @@ export default defineConfig({
         include: ['libsodium-wrappers-sumo', 'protobufjs/minimal', 'long'],
     },
     build: {
-        manifest: false,
+        manifest: 'manifest.json',
         outDir: '../web/js/dist',
         commonjsOptions: {
             include: [/libsodium/, /protobufjs/, /node_modules/],
         },
         rollupOptions: {
+            input: resolve(__dirname, 'src/main.ts'),
             output: {
-                entryFileNames: `[name].js`,
-                chunkFileNames: `[name].js`,
-                assetFileNames: `[name].[ext]`,
+                entryFileNames: `index-[hash].js`,
+                chunkFileNames: `[name]-[hash].js`,
+                assetFileNames: `[name]-[hash].[ext]`,
             }
         }
     },

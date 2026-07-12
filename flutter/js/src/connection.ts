@@ -445,20 +445,26 @@ export default class Connection {
       var i = 0;
       const n = vf.vp9s?.frames.length;
       vf.vp9s.frames.forEach((f) => {
-        dec.processFrame(f.data.slice(0).buffer, (ok: any) => {
-          i++;
-          if (i == n) this.sendVideoReceived();
-          if (ok && dec.frameBuffer && n == i) {
-            this.draw(vf.display as number, dec.frameBuffer);
-            const now = new Date().getTime();
-            var elapsed = now - tm;
-            this._videoTestSpeed[1] += elapsed;
-            this._videoTestSpeed[0] += 1;
-            if (this._videoTestSpeed[0] >= 30) {
-              this._videoTestSpeed = [0, 0];
+        try {
+          dec.processFrame(f.data.slice(0).buffer, (ok: any) => {
+            i++;
+            if (i == n) this.sendVideoReceived();
+            if (ok && dec.frameBuffer && n == i) {
+              this.draw(vf.display as number, dec.frameBuffer);
+              const now = new Date().getTime();
+              var elapsed = now - tm;
+              this._videoTestSpeed[1] += elapsed;
+              this._videoTestSpeed[0] += 1;
+              if (this._videoTestSpeed[0] >= 30) {
+                this._videoTestSpeed = [0, 0];
+              }
             }
-          }
-        });
+          });
+        } catch (e) {
+          i++;
+          console.warn('[handleVideoFrame] processFrame failed, dropping frame', e);
+          if (i == n) this.sendVideoReceived();
+        }
       });
     }
   }
@@ -524,7 +530,7 @@ export default class Connection {
       }
       globals.pushEvent("permission", { [name]: p.enabled });
     } else if (misc.switch_display) {
-      this.loadVideoDecoder();
+      // Dimension-only update: keep VP9 decoder alive (reload on switch_display crashed after ~3 rotations).
       globals.pushEvent("switch_display", misc.switch_display);
       // Update _peerInfo and persist so decoder gets correct dimensions
       const sd = misc.switch_display;
@@ -797,9 +803,12 @@ export default class Connection {
   }
 
   loadVideoDecoder() {
-    this._videoDecoder?.close();
+    const old = this._videoDecoder;
     loadVp9((decoder: any) => {
       this._videoDecoder = decoder;
+      try {
+        old?.close();
+      } catch (_) {}
     });
   }
 }

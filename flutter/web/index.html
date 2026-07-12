@@ -18,7 +18,7 @@
 
     <meta charset="UTF-8" />
     <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
-    <meta name="description" content="TROLOLO" />
+    <meta name="description" content="Fort RC" />
 
     <!-- iOS meta tags & icons -->
     <!-- <meta name="apple-mobile-web-app-capable" content="yes">
@@ -31,8 +31,38 @@
 
     <title>-</title>
     <link rel="manifest" href="manifest.json" />
+    <script>
+      window.__pendingRemoteSessions = [];
+      window.addEventListener("message", (e) => {
+        if (!e.data || typeof e.data !== "object") return;
+        const { type, remoteSessionId, clientId, token, server, key } = e.data;
+        if (
+          type !== "REMOTE_SESSION_READY" ||
+          !remoteSessionId ||
+          !clientId ||
+          !token ||
+          !server ||
+          !key
+        ) {
+          return;
+        }
+        window.__pendingRemoteSessions.push(
+          Object.freeze({
+            remoteSessionId,
+            clientId,
+            token,
+            server,
+            key,
+            source: e.source,
+            origin: e.origin,
+          }),
+        );
+        window.__drainRemoteSessionQueue?.();
+      });
+    </script>
     <script src="ogvjs-1.8.6/ogv.js"></script>
-    <script type="module" crossorigin src="js/dist/index.js"></script>
+    <!-- vite-js-entry -->
+    <script crossorigin src="js/dist/index.js"></script>
     <script src="flutter_bootstrap.js"></script>
   </head>
 
@@ -42,30 +72,6 @@
       [override-settings]
       view_style=adaptive
       image_quality=low
-    </script>
-    <script>
-      window.addEventListener("message", (e) => {
-        const { type, remoteSessionId, clientId, token, server, key } = e.data;
-        if (
-          type !== "REMOTE_SESSION_READY" ||
-          !remoteSessionId ||
-          !clientId ||
-          !token ||
-          !server ||
-          !key
-        )
-          return;
-        const detail = Object.freeze({
-          remoteSessionId,
-          clientId,
-          token,
-          server,
-          key,
-          source: e.source,
-          origin: e.origin,
-        });
-        document.dispatchEvent(new CustomEvent("connection", { detail }));
-      });
     </script>
   </body>
 </html>

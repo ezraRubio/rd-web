@@ -245,7 +245,6 @@ window.setByName = (name, value) => {
       curConn.ctrlAltDel();
       break;
     case "switch_display":
-      console.log("switch display setter event was called with value ", value);
       curConn.switchDisplay(value);
       break;
     case "remove":
@@ -530,6 +529,18 @@ document.addEventListener("connection", async (event) => {
     );
   }
 });
+
+function drainRemoteSessionQueue() {
+  const pending = window.__pendingRemoteSessions;
+  if (!pending?.length) return;
+  while (pending.length > 0) {
+    const detail = pending.shift();
+    document.dispatchEvent(new CustomEvent("connection", { detail }));
+  }
+}
+
+window.__drainRemoteSessionQueue = drainRemoteSessionQueue;
+drainRemoteSessionQueue();
 
 window.init = async () => {
   await loadCustomConfig();
