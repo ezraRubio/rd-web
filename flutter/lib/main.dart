@@ -376,7 +376,8 @@ WindowOptions getHiddenTitleBarWindowOptions(
 
 // [REMOVED_HOME_PAGE] Minimal placeholder replacing WebHomePage for web.
 // Shows nothing — the web app is now a pure session viewer driven by
-// postMessage REMOTE_SESSION_READY events from a parent window.
+// a parent window handshake: VIEWER_READY (base64 ECDH P-256 SPKI public key) then
+// REMOTE_SESSION_READY (base64 JWT envelope in encryptedToken + plaintext fields).
 class _WebPlaceholderPage extends StatelessWidget {
   const _WebPlaceholderPage();
   @override

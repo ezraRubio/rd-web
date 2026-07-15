@@ -32,41 +32,92 @@
     <title>-</title>
     <link rel="manifest" href="manifest.json" />
     <script>
-      window.__pendingRemoteSessions = [];
-      window.addEventListener("message", (e) => {
-        if (!e.data || typeof e.data !== "object") return;
-        const { type, remoteSessionId, clientId, token, server, key } = e.data;
-        if (
-          type !== "REMOTE_SESSION_READY" ||
-          !remoteSessionId ||
-          !clientId ||
-          !token ||
-          !server ||
-          !key
-        ) {
-          return;
+      (async () => {
+        const ECDH_PARAMS = { name: "ECDH", namedCurve: "P-256" };
+
+        try {
+          if (document.referrer) {
+            window.__parentOrigin = new URL(document.referrer).origin;
+          }
+        } catch (e) {
+          console.warn("viewer: invalid document.referrer", e);
         }
-        window.__pendingRemoteSessions.push(
-          Object.freeze({
-            remoteSessionId,
-            clientId,
-            token,
-            server,
-            key,
-            source: e.source,
-            origin: e.origin,
-          }),
-        );
-        window.__drainRemoteSessionQueue?.();
-      });
+
+        try {
+          const keyPair = await crypto.subtle.generateKey(ECDH_PARAMS, true, [
+            "deriveKey",
+            "deriveBits",
+          ]);
+          window.__viewerPrivateKey = keyPair.privateKey;
+          const spki = await crypto.subtle.exportKey("spki", keyPair.publicKey);
+          const spkiBytes = new Uint8Array(spki);
+          let binary = "";
+          for (let i = 0; i < spkiBytes.length; i++) {
+            binary += String.fromCharCode(spkiBytes[i]);
+          }
+          const publicKey = btoa(binary);
+
+          if (window.opener && window.__parentOrigin) {
+            window.opener.postMessage(
+              { type: "VIEWER_READY", version: 1, publicKey },
+              window.__parentOrigin,
+            );
+          } else {
+            console.warn(
+              "viewer: cannot send VIEWER_READY (missing opener or parent origin)",
+            );
+          }
+        } catch (e) {
+          console.error("viewer: key generation failed", e);
+        }
+      })();
     </script>
     <script src="ogvjs-1.8.6/ogv.js"></script>
     <!-- vite-js-entry -->
-    <script crossorigin src="js/dist/index.js"></script>
+    <script crossorigin src="js/dist/index-6e0ee155.js"></script>
     <script src="flutter_bootstrap.js"></script>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #042e4a;
+        color: #e5e7eb;
+      }
+      .box {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 32px;
+        pointer-events: none;
+      }
+      .box h2,
+      .box p {
+        max-width: 520px;
+      }
+      h2 {
+        margin: 0 0 12px;
+      }
+      p {
+        margin: 0;
+        color: #94a3b8;
+        line-height: 1.5;
+      }
+    </style>
   </head>
 
-  <body style="background: #042e4a; margin: 0">
+  <body>
+    <div class="box">
+      <h2>Waiting for remote session…</h2>
+      <p>
+        The session window is open and waiting for the server to report a
+        running state.
+      </p>
+    </div>
     <script id="custom-config" type="text/plain">
       app-name=Fort RC
       [override-settings]

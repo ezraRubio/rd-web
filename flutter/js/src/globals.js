@@ -6,6 +6,7 @@ import { loadVp9 } from "./codec";
 import { checkIfRetry, version } from "./gen_js_from_hbb";
 import { initZstd, translate } from "./common";
 import { loadCustomConfig, getEffectiveOption } from "./config";
+import { decryptToken } from "./viewer-crypto";
 import PCMPlayer from "pcm-player";
 import { convertYCbCr } from "yuv-canvas/src/YCbCr";
 
@@ -512,35 +513,43 @@ Object.defineProperty(window, "connect", {
   },
 });
 
-document.addEventListener("connection", async (event) => {
-  const { remoteSessionId, clientId, token, server, key, source, origin } =
-    event.detail;
+window.addEventListener("message", async (e) => {
+  if (!e.data || typeof e.data !== "object") return;
+  const { type, remoteSessionId, clientId, encryptedToken, server, key } =
+    e.data;
+  if (type !== "REMOTE_SESSION_READY") return;
+  if (!remoteSessionId || !clientId || !encryptedToken || !server || !key) {
+    return;
+  }
+  if (window.__sessionStarted) return;
+  if (e.origin !== window.__parentOrigin || e.source !== window.opener) {
+    return;
+  }
+  if (!window.__viewerPrivateKey) {
+    console.error("REMOTE_SESSION_READY: missing viewer private key");
+    e.source.postMessage(
+      { type: "ACK", result: false, error: "viewer not initialized" },
+      e.origin,
+    );
+    return;
+  }
+
+  window.__sessionStarted = true;
   localStorage.setItem("override:custom-rendezvous-server", server);
   localStorage.setItem("override:key", key);
   try {
+    const token = await decryptToken(window.__viewerPrivateKey, encryptedToken);
     await _connectReadyPromise;
     const result = await _connectImpl(clientId, token, remoteSessionId);
-    source.postMessage({ type: "ACK", result: !!result }, origin);
-  } catch (e) {
-    console.error("connection() failed:", e);
-    source.postMessage(
-      { type: "ACK", result: false, error: e.message },
-      origin,
+    e.source.postMessage({ type: "ACK", result: !!result }, e.origin);
+  } catch (err) {
+    console.error("REMOTE_SESSION_READY failed:", err);
+    e.source.postMessage(
+      { type: "ACK", result: false, error: err.message },
+      e.origin,
     );
   }
 });
-
-function drainRemoteSessionQueue() {
-  const pending = window.__pendingRemoteSessions;
-  if (!pending?.length) return;
-  while (pending.length > 0) {
-    const detail = pending.shift();
-    document.dispatchEvent(new CustomEvent("connection", { detail }));
-  }
-}
-
-window.__drainRemoteSessionQueue = drainRemoteSessionQueue;
-drainRemoteSessionQueue();
 
 window.init = async () => {
   await loadCustomConfig();
