@@ -33,9 +33,95 @@ export function setConnStatus(status, videoCount = 0) {
   _videoConnCount = videoCount;
 }
 
+function getParentTarget() {
+  if (window.__parentOrigin && window.opener) return window.opener;
+  if (window.__parentOrigin && window.parent !== window) return window.parent;
+  return null;
+}
+
+function formatViewerErrorMessage(
+  value,
+  fallback = "An unknown error occurred.",
+) {
+  if (value == null || value === "") return fallback;
+  if (typeof value === "string") return value;
+  if (value instanceof Error) return value.message || fallback;
+  if (typeof value === "object") {
+    if (typeof value.message === "string" && value.message)
+      return value.message;
+    if (typeof value.reason === "string" && value.reason) return value.reason;
+    if (typeof value.text === "string" && value.text) return value.text;
+  }
+  const s = String(value);
+  return s === "[object Object]" ? fallback : s;
+}
+
+export function notifyParentError(title, message, msgboxType = "error") {
+  const target = getParentTarget();
+  if (!target || !window.__parentOrigin) return;
+  const cleanTitle = formatViewerErrorMessage(title, "Error");
+  const cleanMessage = formatViewerErrorMessage(message, cleanTitle);
+  target.postMessage(
+    {
+      type: "VIEWER_ERROR",
+      title: cleanTitle,
+      message: cleanMessage,
+      msgboxType: typeof msgboxType === "string" ? msgboxType : "error",
+    },
+    window.__parentOrigin,
+  );
+}
+
+function notifyFlutterFatalCleanup() {
+  onGlobalEvent(JSON.stringify({ name: "viewer_fatal" }));
+}
+
+export function showFatalError(title, text, msgboxType = "error") {
+  close();
+  notifyParentError(title, text || title, msgboxType);
+  notifyFlutterFatalCleanup();
+  try {
+    window.close();
+  } catch (_) {}
+}
+
+const PARENT_IGNORE_MSGBOX_TYPES = new Set(["connecting", "success"]);
+
+function isParentHandledMsgbox(type, title, text) {
+  if (!type || PARENT_IGNORE_MSGBOX_TYPES.has(type)) return false;
+  if (type === "error") return true;
+  if (
+    type === "re-input-password" ||
+    type === "input-password" ||
+    type === "input-2fa" ||
+    type.startsWith("session-login")
+  ) {
+    return true;
+  }
+  if (
+    type === "relay-hint" ||
+    type === "relay-hint2" ||
+    type === "elevation-error" ||
+    type === "wait-remote-accept-nook" ||
+    type === "on-uac" ||
+    type === "on-foreground-elevated" ||
+    type === "wait-uac" ||
+    type === "restarting"
+  ) {
+    return true;
+  }
+  if (title === "Privacy mode") return true;
+  if (type.includes("error")) return true;
+  if (checkIfRetry(type, title, text)) return true;
+  return false;
+}
+
 export function msgbox(type, title, text, link) {
   if (!type || (type == "error" && !text)) return;
-  const text2 = text.toLowerCase();
+  if (isParentHandledMsgbox(type, title, text)) {
+    showFatalError(title, text || title, type);
+    return;
+  }
   var hasRetry = checkIfRetry(type, title, text) ? "true" : "";
   onGlobalEvent(
     JSON.stringify({
@@ -228,7 +314,6 @@ window.setByName = (name, value) => {
       curConn.refresh();
       break;
     case "reconnect":
-      curConn?.reconnect();
       break;
     case "toggle_option":
       curConn.toggleOption(value);
@@ -527,6 +612,7 @@ window.addEventListener("message", async (e) => {
   }
   if (!window.__viewerPrivateKey) {
     console.error("REMOTE_SESSION_READY: missing viewer private key");
+    showFatalError("Error", "viewer not initialized", "error");
     e.source.postMessage(
       { type: "ACK", result: false, error: "viewer not initialized" },
       e.origin,
@@ -544,6 +630,7 @@ window.addEventListener("message", async (e) => {
     e.source.postMessage({ type: "ACK", result: !!result }, e.origin);
   } catch (err) {
     console.error("REMOTE_SESSION_READY failed:", err);
+    showFatalError("Error", err.message || String(err), "error");
     e.source.postMessage(
       { type: "ACK", result: false, error: err.message },
       e.origin,

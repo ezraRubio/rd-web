@@ -272,6 +272,11 @@ class FfiModel with ChangeNotifier {
       var name = evt['name'];
       if (name == 'msgbox') {
         handleMsgBox(evt, sessionId, peerId);
+      } else if (name == 'viewer_fatal') {
+        if (parent.target != null) {
+          parent.target!.dialogManager.dismissAll();
+          closeConnection();
+        }
       } else if (name == 'toast') {
         handleToast(evt, sessionId, peerId);
       } else if (name == 'set_multiple_windows_session') {
@@ -569,10 +574,16 @@ class FfiModel with ChangeNotifier {
   handleMsgBox(Map<String, dynamic> evt, SessionID sessionId, String peerId) {
     if (parent.target == null) return;
     final dialogManager = parent.target!.dialogManager;
-    final type = evt['type'];
-    final title = evt['title'];
-    final text = evt['text'];
+    final type = evt['type'] ?? '';
+    final title = evt['title'] ?? '';
+    final text = evt['text'] ?? '';
     final link = evt['link'];
+    if (isWeb &&
+        isParentHandledWebMsgbox(
+            type, title, text, evt['hasRetry'] == 'true')) {
+      handleViewerFatal(dialogManager, title, text, type);
+      return;
+    }
     if (type == 're-input-password') {
       wrongPasswordDialog(sessionId, dialogManager, type, title, text);
     } else if (type == 'input-2fa') {

@@ -35,6 +35,44 @@
       (async () => {
         const ECDH_PARAMS = { name: "ECDH", namedCurve: "P-256" };
 
+        function formatViewerErrorMessage(value, fallback) {
+          fallback = fallback || "An unknown error occurred.";
+          if (value == null || value === "") return fallback;
+          if (typeof value === "string") return value;
+          if (value instanceof Error) return value.message || fallback;
+          if (typeof value === "object") {
+            if (typeof value.message === "string" && value.message) {
+              return value.message;
+            }
+            if (typeof value.reason === "string" && value.reason) {
+              return value.reason;
+            }
+            if (typeof value.text === "string" && value.text) return value.text;
+          }
+          var s = String(value);
+          return s === "[object Object]" ? fallback : s;
+        }
+
+        window.notifyParentError = function (title, message, msgboxType) {
+          const target =
+            window.opener ||
+            (window.parent !== window ? window.parent : null);
+          if (target && window.__parentOrigin) {
+            const cleanTitle = formatViewerErrorMessage(title, "Error");
+            const cleanMessage = formatViewerErrorMessage(message, cleanTitle);
+            target.postMessage(
+              {
+                type: "VIEWER_ERROR",
+                title: cleanTitle,
+                message: cleanMessage,
+                msgboxType:
+                  typeof msgboxType === "string" ? msgboxType : "error",
+              },
+              window.__parentOrigin,
+            );
+          }
+        };
+
         try {
           if (document.referrer) {
             window.__parentOrigin = new URL(document.referrer).origin;
@@ -69,12 +107,17 @@
           }
         } catch (e) {
           console.error("viewer: key generation failed", e);
+          window.notifyParentError(
+            "Error",
+            "Failed to initialize viewer",
+            "error",
+          );
         }
       })();
     </script>
     <script src="ogvjs-1.8.6/ogv.js"></script>
     <!-- vite-js-entry -->
-    <script crossorigin src="js/dist/index-6e0ee155.js"></script>
+    <script crossorigin src="js/dist/index-4c5026ca.js"></script>
     <script src="flutter_bootstrap.js"></script>
     <style>
       body {

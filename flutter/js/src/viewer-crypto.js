@@ -10,6 +10,7 @@ export const HKDF_INFO = "fort-rc-token-v1";
  *   Parent → Viewer: { type: "REMOTE_SESSION_READY", version: 1,
  *                      remoteSessionId, clientId, server, key,
  *                      encryptedToken: base64(JWT) }
+ *   Viewer → Parent: { type: "VIEWER_ERROR", title, message, msgboxType }
  *   JWT payload (unsigned, alg=none): {
  *     encryptedToken: base64(AES-GCM ciphertext),
  *     iv: base64(12-byte nonce),

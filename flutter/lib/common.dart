@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'dart:html' as html;
+import 'dart:js' as js;
 import 'package:back_button_interceptor/back_button_interceptor.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
@@ -1142,9 +1143,82 @@ Widget createDialogContent(String text) {
   );
 }
 
+String formatViewerErrorMessage(dynamic value, String fallback) {
+  if (value == null) return fallback;
+  if (value is String) return value.isEmpty ? fallback : value;
+  if (value is num || value is bool) return value.toString();
+  if (value is Map) {
+    final text = value['text'];
+    if (text is String && text.isNotEmpty) return text;
+    final message = value['message'];
+    if (message is String && message.isNotEmpty) return message;
+  }
+  final s = value.toString();
+  return (s.isEmpty || s == '{}') ? fallback : s;
+}
+
+void notifyParentViewerError(dynamic title, dynamic message,
+    [dynamic msgboxType = 'error']) {
+  if (!isWeb) return;
+  final origin = js.context['__parentOrigin'];
+  if (origin == null) return;
+  html.WindowBase? target = html.window.opener;
+  target ??=
+      html.window.parent != html.window ? html.window.parent : null;
+  if (target == null) return;
+  final cleanTitle = formatViewerErrorMessage(title, 'Error');
+  final cleanMessage = formatViewerErrorMessage(message, cleanTitle);
+  target.postMessage({
+    'type': 'VIEWER_ERROR',
+    'title': cleanTitle,
+    'message': cleanMessage,
+    'msgboxType': msgboxType is String ? msgboxType : 'error',
+  }, origin);
+}
+
+bool isParentHandledWebMsgbox(
+    String type, String title, String text, bool hasRetry) {
+  if (type.isEmpty || type == 'connecting' || type == 'success') {
+    return false;
+  }
+  if (text == kMsgboxTextWaitingForImage) return false;
+  if (type == 'error' || type.contains('error') || type == 're-input-password') {
+    return true;
+  }
+  if (type == 'input-password' ||
+      type == 'input-2fa' ||
+      type.startsWith('session-login')) {
+    return true;
+  }
+  if (type == 'relay-hint' ||
+      type == 'relay-hint2' ||
+      type == 'elevation-error' ||
+      type == 'wait-remote-accept-nook' ||
+      type == 'on-uac' ||
+      type == 'on-foreground-elevated' ||
+      type == 'wait-uac' ||
+      type == 'restarting') {
+    return true;
+  }
+  if (title == 'Privacy mode' || hasRetry) return true;
+  return false;
+}
+
+void handleViewerFatal(OverlayDialogManager dialogManager, dynamic title,
+    dynamic text, dynamic type) {
+  notifyParentViewerError(title, text, type);
+  dialogManager.dismissAll();
+  closeConnection();
+}
+
 void msgBox(SessionID sessionId, String type, String title, String text,
     String link, OverlayDialogManager dialogManager,
     {bool? hasCancel, ReconnectHandle? reconnect, int? reconnectTimeout}) {
+  if (isWeb &&
+      isParentHandledWebMsgbox(type, title, text, reconnect != null)) {
+    handleViewerFatal(dialogManager, title, text, type);
+    return;
+  }
   dialogManager.dismissAll();
   List<Widget> buttons = [];
   bool hasOk = false;
