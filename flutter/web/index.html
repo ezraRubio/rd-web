@@ -55,8 +55,7 @@
 
         window.notifyParentError = function (title, message, msgboxType) {
           const target =
-            window.opener ||
-            (window.parent !== window ? window.parent : null);
+            window.opener || (window.parent !== window ? window.parent : null);
           if (target && window.__parentOrigin) {
             const cleanTitle = formatViewerErrorMessage(title, "Error");
             const cleanMessage = formatViewerErrorMessage(message, cleanTitle);
@@ -117,7 +116,7 @@
     </script>
     <script src="ogvjs-1.8.6/ogv.js"></script>
     <!-- vite-js-entry -->
-    <script crossorigin src="js/dist/index-4c5026ca.js"></script>
+    <script crossorigin src="js/dist/index-8fe065e0.js"></script>
     <script src="flutter_bootstrap.js"></script>
     <style>
       body {

@@ -85,40 +85,10 @@ export function showFatalError(title, text, msgboxType = "error") {
   } catch (_) {}
 }
 
-const PARENT_IGNORE_MSGBOX_TYPES = new Set(["connecting", "success"]);
-
-function isParentHandledMsgbox(type, title, text) {
-  if (!type || PARENT_IGNORE_MSGBOX_TYPES.has(type)) return false;
-  if (type === "error") return true;
-  if (
-    type === "re-input-password" ||
-    type === "input-password" ||
-    type === "input-2fa" ||
-    type.startsWith("session-login")
-  ) {
-    return true;
-  }
-  if (
-    type === "relay-hint" ||
-    type === "relay-hint2" ||
-    type === "elevation-error" ||
-    type === "wait-remote-accept-nook" ||
-    type === "on-uac" ||
-    type === "on-foreground-elevated" ||
-    type === "wait-uac" ||
-    type === "restarting"
-  ) {
-    return true;
-  }
-  if (title === "Privacy mode") return true;
-  if (type.includes("error")) return true;
-  if (checkIfRetry(type, title, text)) return true;
-  return false;
-}
-
 export function msgbox(type, title, text, link) {
-  if (!type || (type == "error" && !text)) return;
-  if (isParentHandledMsgbox(type, title, text)) {
+  if (!type) return;
+  if (type == "error" && !text) text = "unknown";
+  if (type === "error") {
     showFatalError(title, text || title, type);
     return;
   }
@@ -611,7 +581,6 @@ window.addEventListener("message", async (e) => {
     return;
   }
   if (!window.__viewerPrivateKey) {
-    console.error("REMOTE_SESSION_READY: missing viewer private key");
     showFatalError("Error", "viewer not initialized", "error");
     e.source.postMessage(
       { type: "ACK", result: false, error: "viewer not initialized" },
@@ -629,12 +598,21 @@ window.addEventListener("message", async (e) => {
     const result = await _connectImpl(clientId, token, remoteSessionId);
     e.source.postMessage({ type: "ACK", result: !!result }, e.origin);
   } catch (err) {
-    console.error("REMOTE_SESSION_READY failed:", err);
     showFatalError("Error", err.message || String(err), "error");
     e.source.postMessage(
       { type: "ACK", result: false, error: err.message },
       e.origin,
     );
+  }
+});
+
+window.addEventListener("unhandledrejection", (e) => {
+  console.error(
+    `An unhandled rejection occurred with reason ${String(e.reson)}`,
+  );
+  if (window.__sessionStarted) {
+    showFatalError("Unknown Error", String(e.reason), "error");
+    e.preventDefault();
   }
 });
 

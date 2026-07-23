@@ -5,11 +5,9 @@ import { loadVp9 } from "./codec";
 import * as sha256 from "fast-sha256";
 import * as globals from "./globals";
 import { decompress, mapKey, sleep } from "./common";
-import { getEffectiveOption } from "./config"
+import { getEffectiveOption } from "./config";
 
-const HOSTS = [
-  "",
-];
+const HOSTS = [""];
 
 type MsgboxCallback = (type: string, title: string, text: string) => void;
 type DrawCallback = (displayId: number, data: Uint8Array) => void;
@@ -62,7 +60,7 @@ export default class Connection {
       this.msgbox(
         "error",
         "Connection Error",
-        e.type == "close" ? "Reset by the peer" : String(e)
+        e.type == "close" ? "Reset by the peer" : String(e),
       );
     }
   }
@@ -142,13 +140,19 @@ export default class Connection {
       await this.connectRelay(rr);
     } else {
       console.error("No punch hole response or relay response in message!");
+      this.connectionError(
+        "Connection Error",
+        "No punch hole response or relay response in message!",
+      );
+      return;
     }
+    return;
   }
 
   async connectRelay(rr: rendezvous.RelayResponse) {
     const pk = rr.pk;
     let uri = rr.relay_server;
-    
+
     const customHost = getEffectiveOption("custom-rendezvous-server");
     if (customHost) {
       uri = getDefaultUri(true);
@@ -157,7 +161,7 @@ export default class Connection {
     } else {
       uri = getDefaultUri(true);
     }
-    
+
     const uuid = rr.uuid;
     const ws = new Websock(uri, false);
     await ws.open();
@@ -192,7 +196,7 @@ export default class Connection {
       }
       if (!pk)
         console.error(
-          "Handshake failed: invalid public key from rendezvous server"
+          "Handshake failed: invalid public key from rendezvous server",
         );
     }
     if (!pk) {
@@ -228,7 +232,7 @@ export default class Connection {
     }
     if (theirPk.length != 32) {
       console.error(
-        "Handshake failed: invalid public box key length from peer"
+        "Handshake failed: invalid public box key length from peer",
       );
       const public_key = message.PublicKey.fromPartial({});
       this._ws?.sendMessage({ public_key });
@@ -252,77 +256,81 @@ export default class Connection {
     try {
       while (true) {
         const msg = (await this._ws?.next(0)) as message.Message;
-        
+
         if (!msg) {
           break;
         }
-        
+
         messageCount++;
-        
+
         if (msg?.hash) {
-        this._hash = msg?.hash;
-        if (this._plaintextPassword) {
-          this.login(this._plaintextPassword);
-        } else {
-          if (!this._password)
-            this.msgbox("input-password", "Password Required", "");
-            continue
-          this.login();
-        }
-      } else if (msg?.test_delay) {
-        const test_delay = msg?.test_delay;
-        if (!test_delay.from_client) {
-          this._ws?.sendMessage({ test_delay });
-        }
-      } else if (msg?.login_response) {
-        const r = msg?.login_response;
-        if (r.error) {
-          if (r.error == "Wrong Password") {
-            this._password = undefined;
-            this.msgbox(
-              "re-input-password",
-              r.error,
-              "Do you want to enter again?"
-            );
+          this._hash = msg?.hash;
+          if (this._plaintextPassword) {
+            this.login(this._plaintextPassword);
           } else {
-            this.msgbox("error", "Login Error", r.error);
+            if (!this._password)
+              this.msgbox("input-password", "Password Required", "");
+            continue;
+            this.login();
           }
-        } else if (r.peer_info) {
-          this.handlePeerInfo(r.peer_info);
-        }
-      } else if (msg?.video_frame) {
-        this.handleVideoFrame(msg?.video_frame!);
-      } else if (msg?.clipboard) {
-        const cb = msg?.clipboard;
-        if (cb.compress) {
-          const c = await decompress(cb.content);
+        } else if (msg?.test_delay) {
+          const test_delay = msg?.test_delay;
+          if (!test_delay.from_client) {
+            this._ws?.sendMessage({ test_delay });
+          }
+        } else if (msg?.login_response) {
+          const r = msg?.login_response;
+          if (r.error) {
+            if (r.error == "Wrong Password") {
+              this._password = undefined;
+              this.msgbox(
+                "re-input-password",
+                r.error,
+                "Do you want to enter again?",
+              );
+            } else {
+              this.msgbox("error", "Login Error", r.error);
+            }
+          } else if (r.peer_info) {
+            this.handlePeerInfo(r.peer_info);
+          }
+        } else if (msg?.video_frame) {
+          this.handleVideoFrame(msg?.video_frame!);
+        } else if (msg?.clipboard) {
+          const cb = msg?.clipboard;
+          if (cb.compress) {
+            const c = await decompress(cb.content);
+            if (!c) continue;
+            cb.content = c;
+          }
+          try {
+            globals.copyToClipboard(new TextDecoder().decode(cb.content));
+          } catch (e) {
+            console.error(e);
+          }
+        } else if (msg?.cursor_data) {
+          const cd = msg?.cursor_data;
+          const c = await decompress(cd.colors);
           if (!c) continue;
-          cb.content = c;
+          cd.colors = c;
+          globals.pushEvent("cursor_data", cd);
+        } else if (msg?.cursor_id) {
+          globals.pushEvent("cursor_id", { id: msg?.cursor_id });
+        } else if (msg?.cursor_position) {
+          globals.pushEvent("cursor_position", msg?.cursor_position);
+        } else if (msg?.misc) {
+          if (!this.handleMisc(msg?.misc)) break;
+        } else if (msg?.audio_frame) {
+          globals.playAudio(msg?.audio_frame.data);
         }
-        try {
-          globals.copyToClipboard(new TextDecoder().decode(cb.content));
-        } catch (e) {
-          console.error(e);
-        }
-      } else if (msg?.cursor_data) {
-        const cd = msg?.cursor_data;
-        const c = await decompress(cd.colors);
-        if (!c) continue;
-        cd.colors = c;
-        globals.pushEvent("cursor_data", cd);
-      } else if (msg?.cursor_id) {
-        globals.pushEvent("cursor_id", { id: msg?.cursor_id });
-      } else if (msg?.cursor_position) {
-        globals.pushEvent("cursor_position", msg?.cursor_position);
-      } else if (msg?.misc) {
-        if (!this.handleMisc(msg?.misc)) break;
-      } else if (msg?.audio_frame) {
-        globals.playAudio(msg?.audio_frame.data);
       }
-    }
     } catch (error) {
-      console.error("Error type:", typeof error, "Value:", error);
-      this.msgbox("error", "Connection Error", String(error));
+      console.error("Message loop closed unexpectly: ", error);
+      this.msgbox(
+        "error",
+        "Connection Error",
+        "Message loop closed by an unknown reason",
+      );
     } finally {
       console.log(`Message loop ended after ${messageCount} messages`);
     }
@@ -438,7 +446,9 @@ export default class Connection {
     if (vf.vp9s) {
       const dec = this._videoDecoder;
       if (!dec) {
-        console.warn('[handleVideoFrame] VP9 decoder not ready yet, dropping frame');
+        console.warn(
+          "[handleVideoFrame] VP9 decoder not ready yet, dropping frame",
+        );
         return;
       }
       var tm = new Date().getTime();
@@ -462,7 +472,10 @@ export default class Connection {
           });
         } catch (e) {
           i++;
-          console.warn('[handleVideoFrame] processFrame failed, dropping frame', e);
+          console.warn(
+            "[handleVideoFrame] processFrame failed, dropping frame",
+            e,
+          );
           if (i == n) this.sendVideoReceived();
         }
       });
@@ -508,7 +521,7 @@ export default class Connection {
     if (misc.audio_format) {
       globals.initAudio(
         misc.audio_format.channels,
-        misc.audio_format.sample_rate
+        misc.audio_format.sample_rate,
       );
     } else if (misc.chat_message) {
       globals.pushEvent("chat", { text: misc.chat_message.text });
@@ -534,13 +547,13 @@ export default class Connection {
       globals.pushEvent("switch_display", misc.switch_display);
       // Update _peerInfo and persist so decoder gets correct dimensions
       const sd = misc.switch_display;
-      console.log("handling misc, switch display, ", sd)
+      console.log("handling misc, switch display, ", sd);
       if (this._peerInfo && this._peerInfo.displays) {
-          const idx = sd.display;
-          if (this._peerInfo.displays[idx]) {
-              this._peerInfo.displays[idx].width = sd.width;
-              this._peerInfo.displays[idx].height = sd.height;
-          }
+        const idx = sd.display;
+        if (this._peerInfo.displays[idx]) {
+          this._peerInfo.displays[idx].width = sd.width;
+          this._peerInfo.displays[idx].height = sd.height;
+        }
       }
       this.setOption("info", this._peerInfo);
     } else if (misc.close_reason) {
@@ -580,7 +593,10 @@ export default class Connection {
   }
 
   getStatus(): string {
-    return JSON.stringify({ status_num: _connStatus, video_conn_count: _videoConnCount });
+    return JSON.stringify({
+      status_num: _connStatus,
+      video_conn_count: _videoConnCount,
+    });
   }
 
   inputKey(
@@ -590,7 +606,7 @@ export default class Connection {
     alt: Boolean,
     ctrl: Boolean,
     shift: Boolean,
-    command: Boolean
+    command: Boolean,
   ) {
     const key_event = mapKey(name, globals.isDesktop());
     if (down && key_event) {
@@ -623,7 +639,7 @@ export default class Connection {
   }
 
   switchDisplay(display: number) {
-    console.log("switchDisplay display ", display)
+    console.log("switchDisplay display ", display);
     const switch_display = message.SwitchDisplay.fromPartial({ display });
     const misc = message.Misc.fromPartial({ switch_display });
     this._ws?.sendMessage({ misc });
@@ -665,7 +681,7 @@ export default class Connection {
     alt: Boolean = false,
     ctrl: Boolean = false,
     shift: Boolean = false,
-    command: Boolean = false
+    command: Boolean = false,
   ) {
     const mouse_event = message.MouseEvent.fromPartial({
       mask,
@@ -707,9 +723,15 @@ export default class Connection {
       case "view-only":
         option.disable_keyboard = v ? v2 : message.OptionMessage_BoolOption.No;
         option.disable_clipboard = v ? v2 : message.OptionMessage_BoolOption.No;
-        option.show_remote_cursor = v ? v2 : message.OptionMessage_BoolOption.No;
-        option.enable_file_transfer = v ? v2 : message.OptionMessage_BoolOption.Yes;
-        option.lock_after_session_end = v ? v2 : message.OptionMessage_BoolOption.Yes;
+        option.show_remote_cursor = v
+          ? v2
+          : message.OptionMessage_BoolOption.No;
+        option.enable_file_transfer = v
+          ? v2
+          : message.OptionMessage_BoolOption.Yes;
+        option.lock_after_session_end = v
+          ? v2
+          : message.OptionMessage_BoolOption.Yes;
         break;
       default:
         return;
@@ -721,9 +743,10 @@ export default class Connection {
 
   togglePrivacyMode(value: string) {
     const option = message.OptionMessage.fromPartial({
-      privacy_mode: value === "true"
-        ? message.OptionMessage_BoolOption.Yes
-        : message.OptionMessage_BoolOption.No,
+      privacy_mode:
+        value === "true"
+          ? message.OptionMessage_BoolOption.Yes
+          : message.OptionMessage_BoolOption.No,
     });
     const misc = message.Misc.fromPartial({ option });
     this._ws?.sendMessage({ misc });
@@ -735,7 +758,7 @@ export default class Connection {
 
   getImageQualityEnum(
     value: string,
-    ignoreDefault: Boolean
+    ignoreDefault: Boolean,
   ): message.ImageQuality | undefined {
     switch (value) {
       case "low":
@@ -811,34 +834,42 @@ export default class Connection {
       } catch (_) {}
     });
   }
+
+  connectionError(title: string, text: string) {
+    this.msgbox("error", title, text);
+  }
 }
 
 let _connStatus = 0;
 let _videoConnCount = 0;
 
- function testDelay() {
-   if (getEffectiveOption("custom-rendezvous-server")) {
-     console.log("Custom rendezvous server configured, skipping public server latency test");
-     return;
-   }
+function testDelay() {
+  if (getEffectiveOption("custom-rendezvous-server")) {
+    console.log(
+      "Custom rendezvous server configured, skipping public server latency test",
+    );
+    return;
+  }
 
-   var nearest = "";
-   HOSTS.forEach((host) => {
-     new Websock(getrUriFromRs(host), true).open().then(() => {
-       if (!nearest) {
-         localStorage.setItem("rendezvous-server", host);
-       }
-     });
-   });
- }
+  var nearest = "";
+  HOSTS.forEach((host) => {
+    new Websock(getrUriFromRs(host), true).open().then(() => {
+      if (!nearest) {
+        localStorage.setItem("rendezvous-server", host);
+      }
+    });
+  });
+}
 
- setTimeout(() => {
-   if (!getEffectiveOption("custom-rendezvous-server")) {
-     testDelay();
-   } else {
-     console.log("Custom rendezvous server configured, skipping public server latency test");
-   }
- }, 100);
+setTimeout(() => {
+  if (!getEffectiveOption("custom-rendezvous-server")) {
+    testDelay();
+  } else {
+    console.log(
+      "Custom rendezvous server configured, skipping public server latency test",
+    );
+  }
+}, 100);
 
 function getDefaultUri(isRelay: Boolean = false): string {
   const host = getEffectiveOption("custom-rendezvous-server");
@@ -848,9 +879,9 @@ function getDefaultUri(isRelay: Boolean = false): string {
 function getrUriFromRs(
   uri: string,
   isRelay: Boolean = false,
-  roffset: number = 0
+  roffset: number = 0,
 ): string {
-  const domain = window.location.hostname
+  const domain = window.location.hostname;
   if (uri.indexOf(":") > 0) {
     const tmp = uri.split(":");
     const port = parseInt(tmp[1]);
