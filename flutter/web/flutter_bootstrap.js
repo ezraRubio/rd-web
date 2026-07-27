@@ -13,5 +13,7 @@ _flutter.loader.load({
     config: {
       useLocalCanvasKit: true,
       canvasKitBaseUrl: "canvaskit/",
+      fontFallbackBaseUrl: "",
+      useColorEmoji: false,
     },
 });
