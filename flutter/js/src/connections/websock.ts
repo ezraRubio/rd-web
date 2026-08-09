@@ -1,8 +1,10 @@
-import * as message from "./message.js";
-import * as rendezvous from "./rendezvous.js";
-import * as globals from "./globals.js";
+import * as message from "../proto/message.js";
+import * as rendezvous from "../proto/rendezvous.js";
+import { encrypt, decrypt } from "../helpers/crypto_sodium.js";
 
 type Keys = "message" | "open" | "close" | "error";
+
+export type IngressAction = "queue" | "consume";
 
 export default class Websock {
   _websocket: WebSocket;
@@ -13,6 +15,7 @@ export default class Websock {
   _secretKey: [Uint8Array, number, number] | undefined;
   _uri: string;
   _isRendezvous: boolean;
+  _ingressHandler?: (msg: message.Message) => IngressAction;
 
   constructor(uri: string, isRendezvous: boolean = true) {
     this._eventHandlers = {
@@ -31,22 +34,18 @@ export default class Websock {
     this._isRendezvous = isRendezvous;
   }
 
-  latency(): number {
-    return this._latency;
-  }
-
   setSecretKey(key: Uint8Array) {
     this._secretKey = [key, 0, 0];
   }
 
   sendMessage(json: message.DeepPartial<message.Message>) {
     let data = message.Message.encode(
-      message.Message.fromPartial(json)
+      message.Message.fromPartial(json),
     ).finish();
     let k = this._secretKey;
     if (k) {
       k[1] += 1;
-      data = globals.encrypt(data, k[1], k[0]);
+      data = encrypt(data, k[1], k[0]);
     }
     this._websocket.send(data);
   }
@@ -54,8 +53,8 @@ export default class Websock {
   sendRendezvous(data: rendezvous.DeepPartial<rendezvous.RendezvousMessage>) {
     this._websocket.send(
       rendezvous.RendezvousMessage.encode(
-        rendezvous.RendezvousMessage.fromPartial(data)
-      ).finish()
+        rendezvous.RendezvousMessage.fromPartial(data),
+      ).finish(),
     );
   }
 
@@ -67,12 +66,10 @@ export default class Websock {
     return rendezvous.RendezvousMessage.decode(data);
   }
 
-  off(evt: Keys) {
-    this._eventHandlers[evt] = () => {};
-  }
-
-  on(evt: Keys, handler: Function) {
-    this._eventHandlers[evt] = handler;
+  setIngressHandler(
+    handler: ((msg: message.Message) => IngressAction) | undefined,
+  ) {
+    this._ingressHandler = handler;
   }
 
   async open(timeout: number = 12000): Promise<Websock> {
@@ -87,7 +84,7 @@ export default class Websock {
         this._status = "open";
         if (this._websocket?.protocol) {
           console.info(
-            "Server choose sub-protocol: " + this._websocket.protocol
+            "Server choose sub-protocol: " + this._websocket.protocol,
           );
         }
 
@@ -103,10 +100,18 @@ export default class Websock {
         reject("Reset by the peer");
       };
       this._websocket.onerror = (e: any) => {
-        console.error("\n websocket current status: " + this._status + "\n WebSock.onerror: ")
+        console.error(
+          "\n websocket current status: " +
+            this._status +
+            "\n WebSock.onerror: ",
+        );
         console.error(e);
         if (!this._status) {
-          reject("Failed to connect to " + (this._isRendezvous ? "rendezvous" : "relay") + " server");
+          reject(
+            "Failed to connect to " +
+              (this._isRendezvous ? "rendezvous" : "relay") +
+              " server",
+          );
           return;
         }
         this._status = e;
@@ -116,12 +121,12 @@ export default class Websock {
   }
 
   async next(
-    timeout = 12000
+    timeout = 12000,
   ): Promise<rendezvous.RendezvousMessage | message.Message> {
     const func = (
       resolve: (value: rendezvous.RendezvousMessage | message.Message) => void,
       reject: (reason: any) => void,
-      tm0: number
+      tm0: number,
     ) => {
       if (this._buf.length) {
         resolve(this._buf[0]);
@@ -144,6 +149,7 @@ export default class Websock {
   }
 
   close() {
+    this._ingressHandler = undefined;
     this._status = "";
     if (this._websocket) {
       if (
@@ -163,13 +169,18 @@ export default class Websock {
       const k = this._secretKey;
       if (k) {
         k[2] += 1;
-        bytes = globals.decrypt(bytes, k[2], k[0]);
+        bytes = decrypt(bytes, k[2], k[0]);
       }
-      this._buf.push(
-        this._isRendezvous
-          ? this.parseRendezvous(bytes)
-          : this.parseMessage(bytes)
-      );
+      if (this._isRendezvous) {
+        this._buf.push(this.parseRendezvous(bytes));
+      } else {
+        const msg = this.parseMessage(bytes);
+        if (this._ingressHandler?.(msg) === "consume") {
+          this._eventHandlers.message(e.data);
+          return;
+        }
+        this._buf.push(msg);
+      }
     }
     this._eventHandlers.message(e.data);
   }

@@ -1,6 +1,6 @@
 import * as zstd from "zstddec";
-import { KeyEvent, controlKeyFromJSON, ControlKey } from "./message";
-import { KEY_MAP, LANGS } from "./gen_js_from_hbb";
+import { KeyEvent, controlKeyFromJSON, ControlKey } from "../proto/message";
+import { KEY_MAP, LANGS } from "../proto/gen_js_from_hbb";
 
 let decompressor: zstd.ZSTDDecoder;
 

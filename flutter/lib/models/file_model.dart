@@ -249,6 +249,7 @@ class FileModel {
       final showHidden = otherSideData.options.showHidden;
       final jobID = jobController.addTransferJob(entry, false);
       webSendLocalFiles(
+        sessionId: sessionId,
         handleIndex: handleIndex,
         actId: jobID,
         path: entry.path,
@@ -259,6 +260,41 @@ class FileModel {
       );
     } catch (e) {
       debugPrint("Failed to decode onSelectedFiles: $e");
+    }
+  }
+
+  void onSelectedFolder(dynamic obj) {
+    localController.selectedItems.clear();
+
+    try {
+      final folderName = obj['folder_name'] as String? ?? '';
+      final totalSize = int.tryParse(obj['total_size']?.toString() ?? '') ?? 0;
+      final fileCount = int.tryParse(obj['file_count']?.toString() ?? '') ?? 0;
+      if (folderName.isEmpty) return;
+
+      final entry = Entry()
+        ..name = folderName
+        ..path = folderName
+        ..size = totalSize;
+      final otherSideData = remoteController.directoryData();
+      final toPath = otherSideData.directory.path;
+      final isWindows = otherSideData.options.isWindows;
+      final showHidden = otherSideData.options.showHidden;
+      final jobID = jobController.addTransferJob(entry, false);
+      if (fileCount > 0) {
+        final jobIndex = jobController.getJob(jobID);
+        if (jobIndex != -1) {
+          jobController.jobTable[jobIndex].fileCount = fileCount;
+        }
+      }
+      webSendFolderUpload(
+        sessionId: sessionId,
+        actId: jobID,
+        to: PathUtil.join(toPath, folderName, isWindows),
+        includeHidden: showHidden,
+      );
+    } catch (e) {
+      debugPrint("Failed to decode onSelectedFolder: $e");
     }
   }
 
@@ -434,12 +470,11 @@ class FileController {
   }
 
   void goToHomeDirectory() {
-    if (isLocal) {
+    if (isLocal || homePath.isNotEmpty) {
       openDirectory(homePath);
       return;
     }
-    homePath = "";
-    openDirectory(homePath);
+    openDirectory("");
   }
 
   void goBack() {
@@ -456,13 +491,48 @@ class FileController {
   void goToParentDirectory() {
     final isWindows = options.value.isWindows;
     final dirPath = directory.value.path;
+    if (!isLocal && homePath.isNotEmpty && dirPath == homePath) {
+      return;
+    }
     var parent = PathUtil.dirname(dirPath, isWindows);
     // specially for C:\, D:\, goto '/'
     if (parent == dirPath && isWindows) {
       openDirectory('/');
       return;
     }
+    if (!isLocal && homePath.isNotEmpty && !_isUnderHome(parent)) {
+      openDirectory(homePath);
+      return;
+    }
     openDirectory(parent);
+  }
+
+  bool _isUnderHome(String path) {
+    if (path == homePath) return true;
+    final prefix =
+        homePath.endsWith('/') || homePath.endsWith('\\') ? homePath : '$homePath/';
+    return path.startsWith(prefix);
+  }
+
+  String resolveInputPath(String path) {
+    if (path.isEmpty) return path;
+    final isWindows = options.value.isWindows;
+    if (!isLocal && homePath.isNotEmpty) {
+      if (path == homePath || _isUnderHome(path)) return path;
+      if (path == '/' || path == '\\') return homePath;
+      if (!isWindows && path.startsWith('/')) return path;
+      return PathUtil.join(
+          homePath, path.replaceFirst(RegExp(r'^[/\\]'), ''), isWindows);
+    }
+    return path;
+  }
+
+  String get displayPath {
+    if (!isLocal && homePath.isNotEmpty) {
+      final relative = shortPath;
+      return relative.isEmpty ? '/' : relative;
+    }
+    return directory.value.path;
   }
 
   // TODO deprecated this
@@ -582,33 +652,39 @@ class FileController {
       } else if (item.isDirectory) {
         title = translate("Not an empty directory");
         dialogManager?.showLoading(translate("Waiting"));
-        final fd = await fileFetcher.fetchDirectoryRecursiveToRemove(
-            jobID, item.path, items.isLocal, true);
-        if (fd.path.isEmpty) {
-          fd.path = item.path;
-        }
-        fd.format(isWindows);
-        dialogManager?.dismissAll();
-        if (fd.entries.isEmpty) {
-          var deleteJobId = jobController.addDeleteDirJob(item, !isLocal, 0);
-          final confirm = await showRemoveDialog(
-              translate(
-                  "Are you sure you want to delete this empty directory?"),
-              item.name,
-              false);
-          if (confirm == true) {
-            sendRemoveEmptyDir(
-              item.path,
-              0,
-              deleteJobId,
-            );
-          } else {
-            jobController.updateJobStatus(deleteJobId,
-                error: "cancel", state: JobState.done);
+        try {
+          final fd = await fileFetcher.fetchDirectoryRecursiveToRemove(
+              jobID, item.path, items.isLocal, true);
+          if (fd.path.isEmpty) {
+            fd.path = item.path;
           }
+          fd.format(isWindows);
+          if (fd.entries.isEmpty) {
+            var deleteJobId = jobController.addDeleteDirJob(item, !isLocal, 0);
+            final confirm = await showRemoveDialog(
+                translate(
+                    "Are you sure you want to delete this empty directory?"),
+                item.name,
+                false);
+            if (confirm == true) {
+              sendRemoveEmptyDir(
+                item.path,
+                0,
+                deleteJobId,
+              );
+            } else {
+              jobController.updateJobStatus(deleteJobId,
+                  error: "cancel", state: JobState.done);
+            }
+            return;
+          }
+          entries = fd.entries;
+        } catch (e) {
+          showToast(translate("Timeout"));
           return;
+        } finally {
+          dialogManager?.dismissAll();
         }
-        entries = fd.entries;
       } else {
         entries = [];
       }
@@ -948,7 +1024,13 @@ class JobController {
       } catch (_) {}
       if (fileNum != null) job.fileNum = fileNum;
       if (speed != null) job.speed = speed;
-      job.state = JobState.done;
+      if (job.fileCount > 1) {
+        if (fileNum != null && fileNum >= job.fileCount - 1) {
+          job.state = JobState.done;
+        }
+      } else {
+        job.state = JobState.done;
+      }
     }
     jobTable.refresh();
     if (job.type == JobType.deleteDir) {
@@ -1182,7 +1264,7 @@ class FileFetcher {
     final c = Completer<FileDirectory>();
     tasks[actID] = c;
 
-    Timer(Duration(seconds: 2), () {
+    Timer(Duration(seconds: 20), () {
       tasks.remove(actID);
       if (c.isCompleted) return;
       c.completeError("Failed to read dir, timeout");

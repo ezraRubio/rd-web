@@ -24,6 +24,10 @@ typedef HandleEvent = Future<void> Function(Map<String, dynamic> evt);
 
 class PlatformFFI {
   final _eventHandlers = <String, Map<String, HandleEvent>>{};
+  final _sessionEventHandlers =
+      <String, void Function(Map<String, dynamic>)>{};
+  final _sessionRgbaHandlers =
+      <String, void Function(int display, int width, int height, Uint8List data)>{};
   final RustdeskImpl _ffiBind = RustdeskImpl();
   final _navigatorReady = Completer<void>();
 
@@ -121,6 +125,22 @@ class PlatformFFI {
       event.preventDefault();
     });
 
+    context["onGlobalEvent"] = (String message) {
+      try {
+        Map<String, dynamic> event = json.decode(message);
+        _dispatchGlobalEvent(event);
+      } catch (e) {
+        print('json.decode fail(): $e');
+      }
+    };
+
+    context["onRgba"] = (String sessionId, int display, int width, int height,
+        Uint8List? rgba) {
+      if (rgba == null) return;
+      final handler = _sessionRgbaHandlers[sessionId];
+      handler?.call(display, width, height, rgba);
+    };
+
     context['onRegisteredEvent'] = (String message) {
       try {
         Map<String, dynamic> event = json.decode(message);
@@ -130,13 +150,6 @@ class PlatformFFI {
       }
     };
 
-    // [REMOVED_HOME_PAGE] Direct push via NavigatorState instead of common.connect().
-    // Old code kept below for reference:
-    // context['connect'] = (String id, String password, String session) {
-    //   final ctx = globalKey.currentContext;
-    //   if (ctx == null || !Uuid.isValidUUID(fromString: session)) return "failure";
-    //   connect(ctx, id, password: password);
-    // };
     context['connect'] = (String id, String password, String session) async {
       if (!Uuid.isValidUUID(fromString: session)) return null;
       if (globalKey.currentState == null) {
@@ -146,6 +159,7 @@ class PlatformFFI {
         builder: (context) => desktop_remote.RemotePage(
           key: ValueKey(id),
           id: id,
+          sessionId: UuidValue(session),
           toolbarState: ToolbarState(),
           password: password,
         ),
@@ -156,27 +170,45 @@ class PlatformFFI {
     return completer.future;
   }
 
+  void _dispatchGlobalEvent(Map<String, dynamic> event) {
+    final sessionId = event['session_id']?.toString();
+    if (sessionId != null && _sessionEventHandlers.containsKey(sessionId)) {
+      _sessionEventHandlers[sessionId]!(event);
+      return;
+    }
+    if (_sessionEventHandlers.length == 1) {
+      _sessionEventHandlers.values.first(event);
+    }
+  }
+
+  void registerSessionEventHandler(
+      String sessionId, void Function(Map<String, dynamic>) handler) {
+    _sessionEventHandlers[sessionId] = handler;
+  }
+
+  void unregisterSessionEventHandler(String sessionId) {
+    _sessionEventHandlers.remove(sessionId);
+  }
+
+  void registerSessionRgbaHandler(String sessionId,
+      void Function(int display, int width, int height, Uint8List data) handler) {
+    _sessionRgbaHandlers[sessionId] = handler;
+  }
+
+  void unregisterSessionRgbaHandler(String sessionId) {
+    _sessionRgbaHandlers.remove(sessionId);
+  }
+
   void onNavigatorReady() {
     if (!_navigatorReady.isCompleted) _navigatorReady.complete();
   }
 
   void setEventCallback(void Function(Map<String, dynamic>) fun) {
-    context["onGlobalEvent"] = (String message) {
-      try {
-        Map<String, dynamic> event = json.decode(message);
-        fun(event);
-      } catch (e) {
-        print('json.decode fail(): $e');
-      }
-    };
+    registerSessionEventHandler('legacy', fun);
   }
 
   void setRgbaCallback(void Function(int, int, int, Uint8List) fun) {
-    context["onRgba"] = (int display, int width, int height, Uint8List? rgba) {
-      if (rgba != null) {
-        fun(display, width, height, rgba);
-      }
-    };
+    registerSessionRgbaHandler('legacy', fun);
   }
 
   void startDesktopWebListener() {

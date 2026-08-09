@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "cmd /c \"python gen_js_from_hbb.py > src\\gen_js_from_hbb.ts && python ts_proto.py && tsc && vite build --emptyOutDir && python patch_web_index.py\"",
-    "build:release": "python gen_js_from_hbb.py > src/gen_js_from_hbb.ts && python ts_proto.py && tsc && vite build --emptyOutDir && python patch_web_index.py",
+    "build": "cmd /c \"python gen_js_from_hbb.py > src\\proto\\gen_js_from_hbb.ts && python ts_proto.py && tsc && vite build --emptyOutDir && python patch_web_index.py\"",
+    "build:release": "python gen_js_from_hbb.py > src/proto/gen_js_from_hbb.ts && python ts_proto.py && tsc && vite build --emptyOutDir && python patch_web_index.py",
     "preview": "vite preview"
   },
   "devDependencies": {
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "fast-sha256": "^1.3.0",
+    "fflate": "^0.8.3",
     "libsodium": "^0.7.9",
     "libsodium-wrappers-sumo": "^0.7.13",
     "ogv": "1.8.6",

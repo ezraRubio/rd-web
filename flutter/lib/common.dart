@@ -1215,8 +1215,12 @@ void handleViewerFatal(OverlayDialogManager dialogManager, dynamic title,
 
 void msgBox(SessionID sessionId, String type, String title, String text,
     String link, OverlayDialogManager dialogManager,
-    {bool? hasCancel, ReconnectHandle? reconnect, int? reconnectTimeout}) {
+    {bool? hasCancel,
+    ReconnectHandle? reconnect,
+    int? reconnectTimeout,
+    bool webFileTransfer = false}) {
   if (isWeb &&
+      !webFileTransfer &&
       isParentHandledWebMsgbox(type, title, text, reconnect != null)) {
     handleViewerFatal(dialogManager, title, text, type);
     return;
@@ -1227,7 +1231,9 @@ void msgBox(SessionID sessionId, String type, String title, String text,
   submit() {
     dialogManager.dismissAll();
     // https://github.com/rustdesk/rustdesk/blob/5e9a31340b899822090a3731769ae79c6bf5f3e5/src/ui/common.tis#L263
-    if (!type.contains("custom") && desktopType != DesktopType.portForward) {
+    if (!type.contains("custom") &&
+        desktopType != DesktopType.portForward &&
+        !(isWeb && webFileTransfer)) {
       closeConnection();
     }
   }
@@ -2459,7 +2465,8 @@ connect(BuildContext context, String id,
                 desktop_file_manager.FileManagerPage(
                     id: id,
                     password: password,
-                    isSharedPassword: isSharedPassword),
+                    isSharedPassword: isSharedPassword,
+                    connToken: connToken),
           ),
         );
       } else {

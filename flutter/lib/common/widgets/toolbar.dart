@@ -158,7 +158,7 @@ List<TTextMenu> toolbarControls(BuildContext context, String id, FFI ffi) {
   }
 
   // transferFile
-  if (isDesktop) {
+  if (isDesktop || isWeb) {
     v.add(
       TTextMenu(
           child: Text(translate('Transfer file')),

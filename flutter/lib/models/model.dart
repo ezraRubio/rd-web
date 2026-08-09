@@ -406,6 +406,10 @@ class FfiModel with ChangeNotifier {
         if (isWeb) {
           parent.target?.fileModel.onSelectedFiles(evt);
         }
+      } else if (name == "selected_folder") {
+        if (isWeb) {
+          parent.target?.fileModel.onSelectedFolder(evt);
+        }
       } else if (name == "send_emptry_dirs") {
         if (isWeb) {
           parent.target?.fileModel.sendEmptyDirs(evt);
@@ -463,7 +467,19 @@ class FfiModel with ChangeNotifier {
 
   /// Bind the event listener to receive events from the Rust core.
   updateEventListener(SessionID sessionId, String peerId) {
+    if (isWeb) {
+      final sid = sessionId.toString();
+      platformFFI.registerSessionEventHandler(
+          sid, startEventListener(sessionId, peerId));
+      return;
+    }
     platformFFI.setEventCallback(startEventListener(sessionId, peerId));
+  }
+
+  void clearEventListener(SessionID sessionId) {
+    if (isWeb) {
+      platformFFI.unregisterSessionEventHandler(sessionId.toString());
+    }
   }
 
   _handlePortableServiceRunning(String peerId, Map<String, dynamic> evt) {
@@ -578,7 +594,12 @@ class FfiModel with ChangeNotifier {
     final title = evt['title'] ?? '';
     final text = evt['text'] ?? '';
     final link = evt['link'];
+    if (type == 'ft-session-ended') {
+      closeWebFileTransferSession(dialogManager, text);
+      return;
+    }
     if (isWeb &&
+        parent.target?.connType != ConnType.fileTransfer &&
         isParentHandledWebMsgbox(
             type, title, text, evt['hasRetry'] == 'true')) {
       handleViewerFatal(dialogManager, title, text, type);
@@ -620,6 +641,28 @@ class FfiModel with ChangeNotifier {
     }
   }
 
+  void closeWebFileTransferSession(
+      OverlayDialogManager dialogManager, String text) {
+    dialogManager.dismissAll();
+    final ffi = parent.target;
+    if (ffi == null || ffi.connType != ConnType.fileTransfer) return;
+    if (text.isNotEmpty) {
+      BotToast.showText(
+        text: translate(text),
+        duration: const Duration(seconds: 3),
+        clickClose: true,
+        onlyOne: true,
+      );
+    }
+    ffi.close().then((_) {
+      if (!isWeb) return;
+      final ctx = globalKey.currentContext;
+      if (ctx != null && Navigator.of(ctx).canPop()) {
+        Navigator.of(ctx).pop();
+      }
+    });
+  }
+
   handleToast(Map<String, dynamic> evt, SessionID sessionId, String peerId) {
     final type = evt['type'] ?? 'info';
     final text = evt['text'] ?? '';
@@ -658,7 +701,8 @@ class FfiModel with ChangeNotifier {
     msgBox(sessionId, type, title, text, link, dialogManager,
         hasCancel: hasCancel,
         reconnect: hasRetry ? reconnect : null,
-        reconnectTimeout: hasRetry ? _reconnects : null);
+        reconnectTimeout: hasRetry ? _reconnects : null,
+        webFileTransfer: parent.target?.connType == ConnType.fileTransfer);
     _timer?.cancel();
     if (hasRetry) {
       _timer = Timer(Duration(seconds: _reconnects), () {
@@ -2625,7 +2669,7 @@ class FFI {
   late final Peers lanPeersModel; // global
 
   FFI(SessionID? sId) {
-    sessionId = sId ?? (isDesktop ? Uuid().v4obj() : _constSessionId);
+    sessionId = sId ?? Uuid().v4obj();
     imageModel = ImageModel(WeakReference(this));
     ffiModel = FfiModel(WeakReference(this));
     cursorModel = CursorModel(WeakReference(this));
@@ -2745,7 +2789,9 @@ class FFI {
     }
 
     if (isWeb) {
-      platformFFI.setRgbaCallback((int display, int width, int height, Uint8List data) {
+      final sid = sessionId.toString();
+      platformFFI.registerSessionRgbaHandler(sid,
+          (int display, int width, int height, Uint8List data) {
         onEvent2UIRgba();
         imageModel.onRgba(display, data, width: width, height: height);
       });
@@ -2891,6 +2937,10 @@ class FFI {
     inputModel.resetModifiers();
     if (closeSession) {
       await bind.sessionClose(sessionId: sessionId);
+    }
+    if (isWeb) {
+      platformFFI.unregisterSessionRgbaHandler(sessionId.toString());
+      ffiModel.clearEventListener(sessionId);
     }
     debugPrint('model $id closed');
     id = '';

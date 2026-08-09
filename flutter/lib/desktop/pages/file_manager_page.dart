@@ -17,6 +17,7 @@ import 'package:flutter_hbb/models/file_model.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:uuid/uuid.dart';
 import 'package:flutter_hbb/web/dummy.dart'
     if (dart.library.html) 'package:flutter_hbb/web/web_unique.dart';
 
@@ -80,6 +81,7 @@ class _FileManagerPageState extends State<FileManagerPage>
   final _overlayKeyState = OverlayKeyState();
 
   late FFI _ffi;
+  bool _sessionClosed = false;
 
   FileModel get model => _ffi.fileModel;
   JobController get jobController => model.jobController;
@@ -87,7 +89,7 @@ class _FileManagerPageState extends State<FileManagerPage>
   @override
   void initState() {
     super.initState();
-    _ffi = FFI(null);
+    _ffi = FFI(isWeb ? Uuid().v4obj() : null);
     _ffi.start(widget.id,
         isFileTransfer: true,
         password: widget.password,
@@ -96,7 +98,13 @@ class _FileManagerPageState extends State<FileManagerPage>
         forceRelay: widget.forceRelay);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ffi.dialogManager
-          .showLoading(translate('Connecting...'), onCancel: closeConnection);
+          .showLoading(translate('Connecting...'), onCancel: () {
+            if (isWeb) {
+              closeFileTransfer();
+            } else {
+              closeConnection();
+            }
+          });
     });
     Get.put<FFI>(_ffi, tag: 'ft_${widget.id}');
     if (!isLinux) {
@@ -114,10 +122,26 @@ class _FileManagerPageState extends State<FileManagerPage>
     WidgetsBinding.instance.addObserver(this);
   }
 
+  Future<void> closeFileTransfer() async {
+    if (_sessionClosed) {
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+    _sessionClosed = true;
+    _ffi.dialogManager.dismissAll();
+    await _ffi.close();
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   void dispose() {
-    model.close().whenComplete(() {
+    if (!_sessionClosed) {
+      _sessionClosed = true;
       _ffi.close();
+    }
+    model.close().whenComplete(() {
       _ffi.dialogManager.dismissAll();
       if (!isLinux) {
         WakelockPlus.disable();
@@ -144,8 +168,18 @@ class _FileManagerPageState extends State<FileManagerPage>
     super.build(context);
     return Overlay(key: _overlayKeyState.key, initialEntries: [
       OverlayEntry(builder: (_) {
-        return Scaffold(
+        final body = Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: isWeb
+              ? AppBar(
+                  title: Text(translate('Transfer file')),
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    tooltip: translate('Back'),
+                    onPressed: closeFileTransfer,
+                  ),
+                )
+              : null,
           body: Row(
             children: [
               if (!isWeb)
@@ -161,6 +195,16 @@ class _FileManagerPageState extends State<FileManagerPage>
             ],
           ),
         );
+        if (isWeb) {
+          return PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, _) {
+              if (!didPop) closeFileTransfer();
+            },
+            child: body,
+          );
+        }
+        return body;
       })
     ]);
   }
@@ -218,6 +262,7 @@ class _FileManagerPageState extends State<FileManagerPage>
           itemBuilder: (BuildContext context, int index) {
             final item = jobs[index];
             final status = item.getStatus();
+            final percentage = item.totalSize > 0 ? item.finishedSize / item.totalSize : 0.0;
             return Padding(
               padding: const EdgeInsets.only(bottom: 5),
               child: generateCard(
@@ -261,10 +306,10 @@ class _FileManagerPageState extends State<FileManagerPage>
                                 child: LinearPercentIndicator(
                                   animateFromLastPercent: true,
                                   center: Text(
-                                    '${(item.finishedSize / item.totalSize * 100).toStringAsFixed(0)}%',
+                                    '${(percentage*100).toStringAsFixed(0)}%',
                                   ),
                                   barRadius: Radius.circular(15),
-                                  percent: item.finishedSize / item.totalSize,
+                                  percent: percentage,
                                   progressColor: MyTheme.accent,
                                   backgroundColor: Theme.of(context).hoverColor,
                                   lineHeight: kDesktopFileTransferRowHeight,
@@ -528,10 +573,15 @@ class _FileManagerViewState extends State<FileManagerView> {
                                   );
                                 }
                               })),
-                      Text(isLocal
-                              ? translate("Local Computer")
-                              : translate("Remote Computer"))
-                          .marginOnly(left: 8.0)
+                          FutureBuilder<String>(
+                            future: bind.sessionGetHostname(sessionId: _ffi.sessionId, isRemote: !isLocal),
+                            builder: (context, snap) {
+                              final title = isLocal
+                                  ? translate("Local Computer")
+                                  : (snap.data?.isNotEmpty == true ? snap.data! : _ffi.id);
+                              return Text(title).marginOnly(left: 8.0);
+                            },
+                          )
                     ],
                   ),
                   preferredSize: Size(double.infinity, 70))
@@ -626,21 +676,7 @@ class _FileManagerViewState extends State<FileManagerView> {
               Obx(() {
                 switch (_locationStatus.value) {
                   case LocationStatus.bread:
-                    return MenuButton(
-                      tooltip: translate('Search'),
-                      onPressed: () {
-                        _locationStatus.value = LocationStatus.fileSearchBar;
-                        Future.delayed(
-                            Duration.zero, () => _locationNode.requestFocus());
-                      },
-                      child: SvgPicture.asset(
-                        "assets/search.svg",
-                        colorFilter:
-                            svgColor(Theme.of(context).tabBarTheme.labelColor),
-                      ),
-                      color: Theme.of(context).cardColor,
-                      hoverColor: Theme.of(context).hoverColor,
-                    );
+                      return const SizedBox.shrink();
                   case LocationStatus.pathLocation:
                     return MenuButton(
                       onPressed: null,
@@ -831,8 +867,11 @@ class _FileManagerViewState extends State<FileManagerView> {
                               : MyTheme.accent,
                         ),
                       ),
-                      onPressed: () =>
-                          {webselectFiles(is_folder: isUploadFolder.value)},
+                      onPressed: () => {
+                            webselectFiles(
+                                sessionId: _ffi.sessionId,
+                                is_folder: isUploadFolder.value)
+                          },
                       label: InkWell(
                         hoverColor: Colors.transparent,
                         splashColor: Colors.transparent,
@@ -863,7 +902,8 @@ class _FileManagerViewState extends State<FileManagerView> {
                             bind.mainSetLocalOption(
                                 key: 'upload-folder-button',
                                 value: value ? 'Y' : '');
-                            webselectFiles(is_folder: value);
+                            webselectFiles(
+                                sessionId: _ffi.sessionId, is_folder: value);
                           }
                         },
                         child: Icon(Icons.arrow_drop_down),
@@ -1047,8 +1087,7 @@ class _FileManagerViewState extends State<FileManagerView> {
             .where((element) => element.name.toLowerCase().startsWith(buffer));
         if (searchResult.isEmpty) {
           // cannot find next, lets restart search from head
-          debugPrint("restart search from head");
-          searchResult = entries.where(
+          var searchResult = entries.where(
               (element) => element.name.toLowerCase().startsWith(buffer));
         }
         if (searchResult.isEmpty) {
@@ -1455,13 +1494,7 @@ class _FileManagerViewState extends State<FileManagerView> {
   }
 
   Widget buildBread() {
-    final items = getPathBreadCrumbItems(isLocal, (list) {
-      var path = "";
-      for (var item in list) {
-        path = PathUtil.join(path, item, controller.options.value.isWindows);
-      }
-      controller.openDirectory(path);
-    });
+    final items = getPathBreadCrumbItems(isLocal);
 
     return items.isEmpty
         ? Offstage()
@@ -1512,7 +1545,12 @@ class _FileManagerViewState extends State<FileManagerView> {
                                   style: style,
                                 ),
                           proc: () {
-                            controller.openDirectory('/');
+                            if (!isLocal &&
+                                controller.homePath.isNotEmpty) {
+                              controller.openDirectory(controller.homePath);
+                            } else {
+                              controller.openDirectory('/');
+                            }
                           },
                           dismissOnClicked: true),
                       MenuEntryDivider()
@@ -1579,19 +1617,55 @@ class _FileManagerViewState extends State<FileManagerView> {
               ]);
   }
 
-  List<BreadCrumbItem> getPathBreadCrumbItems(
-      bool isLocal, void Function(List<String>) onPressed) {
+  List<BreadCrumbItem> getPathBreadCrumbItems(bool isLocal) {
     final path = controller.directory.value.path;
     final breadCrumbList = List<BreadCrumbItem>.empty(growable: true);
     final isWindows = controller.options.value.isWindows;
+    final home = controller.homePath;
+    final useHomeRoot = !isLocal && home.isNotEmpty;
+
     if (isWindows && path == '/') {
       breadCrumbList.add(BreadCrumbItem(
           content: TextButton(
                   child: buildWindowsThisPC(context),
                   style: ButtonStyle(
                       minimumSize: MaterialStateProperty.all(Size(0, 0))),
-                  onPressed: () => onPressed(['/']))
+                  onPressed: () => controller.openDirectory('/'))
               .marginSymmetric(horizontal: 4)));
+    } else if (useHomeRoot) {
+      breadCrumbList.add(BreadCrumbItem(
+          content: TextButton(
+                  child: Text('/'),
+                  style: ButtonStyle(
+                      minimumSize: MaterialStateProperty.all(Size(0, 0))),
+                  onPressed: () => controller.openDirectory(home))
+              .marginSymmetric(horizontal: 4)));
+      final shortPath = controller.shortPath;
+      if (shortPath.isNotEmpty) {
+        final list = PathUtil.split(shortPath, isWindows);
+        breadCrumbList.addAll(
+          list.asMap().entries.map(
+                (e) => BreadCrumbItem(
+                  content: TextButton(
+                    child: Text(e.value),
+                    style: ButtonStyle(
+                      minimumSize: MaterialStateProperty.all(
+                        Size(0, 0),
+                      ),
+                    ),
+                    onPressed: () {
+                      var resolvedPath = home;
+                      for (var item in list.sublist(0, e.key + 1)) {
+                        resolvedPath =
+                            PathUtil.join(resolvedPath, item, isWindows);
+                      }
+                      controller.openDirectory(resolvedPath);
+                    },
+                  ).marginSymmetric(horizontal: 4),
+                ),
+              ),
+        );
+      }
     } else {
       final list = PathUtil.split(path, isWindows);
       breadCrumbList.addAll(
@@ -1604,9 +1678,14 @@ class _FileManagerViewState extends State<FileManagerView> {
                       Size(0, 0),
                     ),
                   ),
-                  onPressed: () => onPressed(
-                    list.sublist(0, e.key + 1),
-                  ),
+                  onPressed: () {
+                    var resolvedPath = "";
+                    for (var item in list.sublist(0, e.key + 1)) {
+                      resolvedPath =
+                          PathUtil.join(resolvedPath, item, isWindows);
+                    }
+                    controller.openDirectory(resolvedPath);
+                  },
                 ).marginSymmetric(horizontal: 4),
               ),
             ),
@@ -1628,7 +1707,7 @@ class _FileManagerViewState extends State<FileManagerView> {
 
   Widget buildPathLocation() {
     final text = _locationStatus.value == LocationStatus.pathLocation
-        ? controller.directory.value.path
+        ? controller.displayPath
         : _searchText.value;
     final textController = TextEditingController(text: text)
       ..selection = TextSelection.collapsed(offset: text.length);
@@ -1652,7 +1731,7 @@ class _FileManagerViewState extends State<FileManagerView> {
             ),
             controller: textController,
             onSubmitted: (path) {
-              controller.openDirectory(path);
+              controller.openDirectory(controller.resolveInputPath(path));
             },
             onChanged: _locationStatus.value == LocationStatus.fileSearchBar
                 ? (searchText) => onSearchText(searchText, isLocal)

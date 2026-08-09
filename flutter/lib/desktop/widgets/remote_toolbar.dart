@@ -470,6 +470,8 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
       }
     }));
 
+    toolbarItems.add(
+        _ControlMenu(id: widget.id, ffi: widget.ffi, state: widget.state));
     toolbarItems.add(_DisplayMenu(
       id: widget.id,
       ffi: widget.ffi,
@@ -830,23 +832,17 @@ class _ControlMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _IconSubmenuButton(
-        tooltip: 'Control Actions',
-        svg: "assets/actions.svg",
+    final connToken = bind.sessionGetConnToken(sessionId: ffi.sessionId);
+    return _IconMenuButton(
+        tooltip: 'File transfer',
+        assetName: "assets/transfer.svg",
         color: _ToolbarTheme.blueColor,
         hoverColor: _ToolbarTheme.hoverBlueColor,
-        ffi: ffi,
-        menuChildrenGetter: () => toolbarControls(context, id, ffi).map((e) {
-              if (e.divider) {
-                return Divider();
-              } else {
-                return MenuButton(
-                    child: e.child,
-                    onPressed: e.onPressed,
-                    ffi: ffi,
-                    trailingIcon: e.trailingIcon);
-              }
-            }).toList());
+        onPressed: () => connect(context, id,
+        isFileTransfer: true,
+        isTcpTunneling: false,
+        connToken: connToken),
+    );
   }
 }
 
