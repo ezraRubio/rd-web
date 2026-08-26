@@ -139,7 +139,9 @@ class _RemotePageState extends State<RemotePage>
     _ffi.ffiModel.updateEventListener(sessionId, widget.id);
     if (!isWeb) bind.pluginSyncUi(syncTo: kAppTypeDesktopRemote);
     _ffi.qualityMonitorModel.checkShowQualityMonitor(sessionId);
-    _ffi.dialogManager.loadMobileActionsOverlayVisible();
+    if (!isWeb) {
+      _ffi.dialogManager.loadMobileActionsOverlayVisible();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Session option should be set after models.dart/FFI.start
       _showRemoteCursor.value = bind.sessionGetToggleOptionSync(
@@ -329,7 +331,7 @@ class _RemotePageState extends State<RemotePage>
                       _ffi.ffiModel.waitForFirstImage.isTrue
                   ? emptyOverlay()
                   : () {
-                      if (!_ffi.ffiModel.isPeerAndroid) {
+                      if (!_ffi.ffiModel.isPeerAndroid || isWeb) {
                         return Offstage();
                       } else {
                         return Obx(() => Offstage(

@@ -37,24 +37,8 @@ export function ensureLoginSessionId(conn: {
   return conn._loginSessionId;
 }
 
-export function getDefaultUri(isRelay = false): string {
-  const host = getEffectiveOption("custom-rendezvous-server");
-  return getrUriFromRs(host, isRelay);
-}
-
-export function getrUriFromRs(
-  uri: string,
-  isRelay = false,
-  roffset = 0,
-): string {
-  const domain = window.location.hostname;
-  if (uri.indexOf(":") > 0) {
-    const tmp = uri.split(":");
-    const port = parseInt(tmp[1]);
-    uri = tmp[0] + ":" + (port + (isRelay ? roffset || 3 : 2));
-    return "wss://" + domain;
-  }
-  return "wss://" + domain + (isRelay ? "/ws/relay" : "/ws/id");
+function getDefaultUri(isRelay = false): string {
+  return `wss://${window.location.host}/ws/${isRelay ? "relay" : "id"}`;
 }
 
 export function punchHoleFailureMessage(
@@ -151,15 +135,7 @@ export async function connectRelay(
   sessionId: string | undefined,
   onReady: (ws: Websock, secure: boolean) => Promise<void>,
 ): Promise<void> {
-  let uri = rr.relay_server;
-  const customHost = getEffectiveOption("custom-rendezvous-server");
-  if (customHost) {
-    uri = getDefaultUri(true);
-  } else if (uri) {
-    uri = getrUriFromRs(uri, true, 2);
-  } else {
-    uri = getDefaultUri(true);
-  }
+  const uri = getDefaultUri(true);
   const uuid = rr.uuid;
   const ws = new Websock(uri, false);
   await ws.open();
